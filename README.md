@@ -49,6 +49,10 @@ Copy an existing Swift Track App database to the path above to keep your data.
 | Project rules | ✓ | ✓ |
 | Activity log | ✓ | ✓ |
 | Report + CSV export | ✓ | ✓ |
-| CSV import | — | ✓ |
+| CSV import | ✓ | ✓ |
+| SQLite import (skip/merge/replace) | ✓ | ✓ |
+| Edit job timer | ✓ | ✓ |
+| Custom report date range | ✓ | ✓ |
+| HUD corner snap | Linux/macOS/Windows | ✓ |
 | Always-on-top HUD | partial | ✓ |
 | Menu bar (macOS) | tray | ✓ |

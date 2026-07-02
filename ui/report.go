@@ -3,7 +3,9 @@ package ui
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -29,11 +31,34 @@ func (m *MainWindow) buildReport() fyne.CanvasObject {
 	}
 	typeOpts := []string{string(models.FilterAll), string(models.FilterTracked), string(models.FilterManual)}
 
+	dateFrom := widget.NewEntry()
+	dateFrom.SetPlaceHolder("From YYYY-MM-DD")
+	dateTo := widget.NewEntry()
+	dateTo.SetPlaceHolder("To YYYY-MM-DD")
+	if m.reportFromDate != "" {
+		dateFrom.SetText(m.reportFromDate)
+	}
+	if m.reportToDate != "" {
+		dateTo.SetText(m.reportToDate)
+	}
+	dateFrom.OnChanged = func(s string) { m.reportFromDate = s; m.refreshReport() }
+	dateTo.OnChanged = func(s string) { m.reportToDate = s; m.refreshReport() }
+	dateRow := container.NewHBox(dateFrom, dateTo)
+	dateRow.Hide()
+
 	rangeSel := widget.NewSelect(rangeOpts, func(s string) {
 		m.reportRange = s
+		if s == string(models.RangeCustom) {
+			dateRow.Show()
+		} else {
+			dateRow.Hide()
+		}
 		m.refreshReport()
 	})
 	rangeSel.SetSelected(m.reportRange)
+	if m.reportRange == string(models.RangeCustom) {
+		dateRow.Show()
+	}
 
 	typeSel := widget.NewSelect(typeOpts, func(s string) {
 		m.reportType = s
@@ -62,7 +87,11 @@ func (m *MainWindow) buildReport() fyne.CanvasObject {
 	m.reportTagSel = tagSel
 	m.reportTimerSummary = timerSummary
 	m.reportSessionsList = sessionsList
+	m.reportDateFrom = dateFrom
+	m.reportDateTo = dateTo
+	m.reportDateRow = dateRow
 
+	importBtn := widget.NewButton("Import…", func() { m.importReportFile() })
 	exportCSV := widget.NewButton("Export CSV", func() { m.exportReportCSV() })
 	exportDB := widget.NewButton("Export .sqlite", func() { m.exportReportDB() })
 	deleteBtn := widget.NewButton("Delete selected", func() { m.deleteSelectedSessions() })
@@ -70,7 +99,8 @@ func (m *MainWindow) buildReport() fyne.CanvasObject {
 
 	filters := widget.NewCard("Filters", "", container.NewVBox(
 		container.NewHBox(rangeSel, typeSel, clientSel, tagSel),
-		container.NewHBox(exportCSV, exportDB, deleteBtn),
+		dateRow,
+		container.NewHBox(importBtn, exportCSV, exportDB, deleteBtn),
 	))
 
 	m.refreshReport()
@@ -96,7 +126,16 @@ func (m *MainWindow) refreshReport() {
 	}
 
 	r := models.ReportRange(m.reportRange)
-	from, to := format.ReportRangeBounds(r, nil, nil)
+	var fromPtr, toPtr *time.Time
+	if r == models.RangeCustom {
+		if t, err := time.Parse("2006-01-02", m.reportFromDate); err == nil {
+			fromPtr = &t
+		}
+		if t, err := time.Parse("2006-01-02", m.reportToDate); err == nil {
+			toPtr = &t
+		}
+	}
+	from, to := format.ReportRangeBounds(r, fromPtr, toPtr)
 	fromMs, toMs := from.UnixMilli(), to.UnixMilli()
 
 	var sessions []models.Session
@@ -357,4 +396,71 @@ func containsTag(tags []string, tag string) bool {
 		}
 	}
 	return false
+}
+
+func (m *MainWindow) importReportFile() {
+	dialog.ShowFileOpen(func(rc fyne.URIReadCloser, err error) {
+		if err != nil || rc == nil {
+			return
+		}
+		defer rc.Close()
+		path := rc.URI().Path()
+		ext := strings.ToLower(filepath.Ext(path))
+		if ext == ".sqlite" || ext == ".db" {
+			m.importSQLite(path)
+			return
+		}
+		data, err := io.ReadAll(rc)
+		if err != nil {
+			dialog.ShowError(err, m.window)
+			return
+		}
+		if err := m.app.Store.ImportCSV(string(data), models.ImportSkip); err != nil {
+			dialog.ShowError(err, m.window)
+			return
+		}
+		m.app.Notify()
+		dialog.ShowInformation("Import", "Import complete", m.window)
+	}, m.window)
+}
+
+func (m *MainWindow) importSQLite(path string) {
+	conflicts, err := m.app.Store.DetectImportConflicts(path)
+	if err != nil {
+		dialog.ShowError(err, m.window)
+		return
+	}
+	if conflicts.TimerCount == 0 && conflicts.SessionCount == 0 {
+		m.finishSQLiteImport(path, models.ImportSkip)
+		return
+	}
+	msg := fmt.Sprintf(
+		"%d job timer(s) and %d session(s) already exist.\nChoose how to handle overlaps.",
+		conflicts.TimerCount, conflicts.SessionCount,
+	)
+	var d dialog.Dialog
+	closeAndImport := func(strategy models.ImportStrategy) {
+		if d != nil {
+			d.Hide()
+		}
+		m.finishSQLiteImport(path, strategy)
+	}
+	skip := widget.NewButton("Skip duplicates", func() { closeAndImport(models.ImportSkip) })
+	merge := widget.NewButton("Merge", func() { closeAndImport(models.ImportMerge) })
+	replace := widget.NewButton("Replace overlaps", func() { closeAndImport(models.ImportReplace) })
+	body := container.NewVBox(
+		widget.NewLabel(msg),
+		container.NewHBox(skip, merge, replace),
+	)
+	d = dialog.NewCustom("Import database", "Cancel", body, m.window)
+	d.Show()
+}
+
+func (m *MainWindow) finishSQLiteImport(path string, strategy models.ImportStrategy) {
+	if err := m.app.Store.ImportDatabase(path, strategy); err != nil {
+		dialog.ShowError(err, m.window)
+		return
+	}
+	m.app.Notify()
+	dialog.ShowInformation("Import", "Import complete", m.window)
 }

@@ -38,6 +38,11 @@ type MainWindow struct {
 	reportTagSel       *widget.Select
 	reportTimerSummary *fyne.Container
 	reportSessionsList *fyne.Container
+	reportFromDate     string
+	reportToDate       string
+	reportDateFrom     *widget.Entry
+	reportDateTo       *widget.Entry
+	reportDateRow      *fyne.Container
 }
 
 func NewMainWindow(a *app.TrackApp, fyneApp fyne.App, hud *HUD) *MainWindow {
@@ -179,6 +184,7 @@ func (m *MainWindow) buildTimers() fyne.CanvasObject {
 			startBtn.OnTapped = func() { m.app.Manager.Pause(t.ID) }
 		}
 		actions := container.NewHBox(startBtn,
+			widget.NewButton("Edit", func() { showEditTimer(m.window, m.app, t) }),
 			widget.NewButton("Reset", func() { m.app.Manager.Reset(t.ID) }),
 			widget.NewButton("Delete", func() { m.app.Store.DeleteTimer(t.ID); m.app.Notify() }),
 		)

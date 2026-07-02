@@ -163,6 +163,19 @@ const (
 	FilterManual  SessionTypeFilter = "Manual"
 )
 
+type ImportStrategy string
+
+const (
+	ImportSkip    ImportStrategy = "skip"
+	ImportMerge   ImportStrategy = "merge"
+	ImportReplace ImportStrategy = "replace"
+)
+
+type ImportConflictSummary struct {
+	TimerCount   int
+	SessionCount int
+}
+
 func MakeID() string {
 	ts := time.Now().UnixMilli()
 	r := rand.Intn(0x10000)

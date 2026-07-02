@@ -3,6 +3,7 @@ package ui
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/prestonw/track-app-go/internal/app"
@@ -23,12 +24,17 @@ type HUD struct {
 }
 
 func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
-	h := &HUD{app: a, size: fyne.NewSize(260, 100)}
-	h.window = fyneApp.NewWindow("")
+	h := &HUD{app: a, size: fyne.NewSize(280, 108)}
+	if drv, ok := fyneApp.Driver().(desktop.Driver); ok {
+		h.window = drv.CreateSplashWindow()
+		h.window.SetPadded(true)
+	} else {
+		h.window = fyneApp.NewWindow("")
+		h.window.SetPadded(true)
+	}
 	h.window.SetFixedSize(true)
 	h.window.Resize(h.size)
-	h.window.SetTitle("")
-	h.window.SetPadded(true)
+	h.window.SetTitle("TrackApp HUD")
 	h.window.SetCloseIntercept(func() { h.Hide() })
 
 	h.clock = widget.NewLabel("00:00:00")
@@ -113,8 +119,8 @@ func (h *HUD) refreshBanner() {
 		name = proj.Name
 	}
 	label := widget.NewLabel("Start tracking " + name + "?")
-	start := widget.NewButton("Start", func() { h.app.Coordinator.ConfirmAutoStart(); h.refresh() })
-	skip := widget.NewButton("Skip", func() { h.app.Coordinator.SkipAutoStart(); h.refresh() })
+	start := widget.NewButton("Start", func() { h.app.Coordinator.ConfirmAutoStart(); h.app.Notify(); h.refresh() })
+	skip := widget.NewButton("Skip", func() { h.app.Coordinator.SkipAutoStart(); h.app.Notify(); h.refresh() })
 	h.banner.Add(label)
 	h.banner.Add(start)
 	h.banner.Add(skip)
