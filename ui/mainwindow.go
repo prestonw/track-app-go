@@ -23,6 +23,21 @@ type MainWindow struct {
 	content  *fyne.Container
 	nav      *widget.List
 	sections []string
+
+	selectedProject int
+
+	reportRange        string
+	reportType         string
+	reportClient       string
+	reportTag          string
+	reportSelected     map[string]bool
+	reportDisplayed    []models.Session
+	reportRangeSel     *widget.Select
+	reportTypeSel      *widget.Select
+	reportClientSel    *widget.Select
+	reportTagSel       *widget.Select
+	reportTimerSummary *fyne.Container
+	reportSessionsList *fyne.Container
 }
 
 func NewMainWindow(a *app.TrackApp, fyneApp fyne.App, hud *HUD) *MainWindow {
@@ -239,8 +254,11 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 			o.(*widget.Label).SetText(p.Name)
 		},
 	)
-	var selected int = -1
-	projectList.OnSelected = func(id widget.ListItemID) { selected = int(id) }
+	projectList.OnSelected = func(id widget.ListItemID) {
+		m.selectedProject = int(id)
+		m.showSection(currentSection)
+	}
+	selected := m.selectedProject
 
 	pattern := widget.NewEntry()
 	pattern.SetPlaceHolder("Match pattern")
@@ -333,47 +351,6 @@ func (m *MainWindow) buildActivity() fyne.CanvasObject {
 		m.app.Notify()
 	})
 	return container.NewBorder(header, container.NewHBox(projSel, assign), nil, nil, list)
-}
-
-func (m *MainWindow) buildReport() fyne.CanvasObject {
-	rangeSel := widget.NewSelect([]string{
-		string(models.RangeToday), string(models.RangeWeek), string(models.RangeMonth), string(models.RangeAll),
-	}, nil)
-	rangeSel.SetSelected(string(models.RangeToday))
-
-	summary := widget.NewLabel("")
-	table := widget.NewTable(
-		func() (int, int) { return 2, 6 },
-		func() fyne.CanvasObject { return widget.NewLabel("cell") },
-		func(id widget.TableCellID, o fyne.CanvasObject) { o.(*widget.Label).SetText("") },
-	)
-	refresh := func() {
-		r := models.ReportRange(rangeSel.Selected)
-		from, to := format.ReportRangeBounds(r, nil, nil)
-		fromMs, toMs := from.UnixMilli(), to.UnixMilli()
-		byTimer := map[string]int{}
-		for _, sess := range m.app.Store.Sessions {
-			if sess.Start >= fromMs && sess.Start <= toMs {
-				byTimer[sess.TimerID] += sess.Seconds
-			}
-		}
-		var lines []string
-		for _, t := range m.app.Store.Timers {
-			if sec, ok := byTimer[t.ID]; ok {
-				lines = append(lines, fmt.Sprintf("%s — %s", t.Name, format.HumanDuration(sec)))
-			}
-		}
-		summary.SetText(strings.Join(lines, "\n"))
-	}
-	rangeSel.OnChanged = func(string) { refresh() }
-	refresh()
-
-	return container.NewVBox(
-		headingLabel("Report"),
-		widget.NewCard("By job timer", "", summary),
-		rangeSel,
-		table,
-	)
 }
 
 func (m *MainWindow) buildSettings() fyne.CanvasObject {

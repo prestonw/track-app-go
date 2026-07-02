@@ -1,14 +1,15 @@
 # Track App (Go)
 
-Cross-platform time tracker — Linux, macOS, and Windows — sharing the same SQLite schema as the original Swift Track App.
+Cross-platform time tracker for Linux, macOS, and Windows — same SQLite schema as the Swift Track App.
 
 ## Features
 
-- Floating timer HUD (borderless overlay)
-- Main window: Today, Job Timers, Clients, Projects, Activity, Report, Settings
-- SQLite persistence (`~/.config/TrackApp/track-app.sqlite` on Linux)
-- Project rules and optional auto-track (platform-dependent foreground detection)
-- Optional system tray (`-tags systray`)
+- **Floating timer HUD** — compact overlay with job picker, play/pause, reset, corner snap (Linux via xdotool), and auto-start prompt banner
+- **Main window** — Today, Job Timers, Clients, Projects (rules + auto-track), Activity, Report, Settings
+- **Auto-track** — foreground polling matches project rules, switches focus timer, optional Start/Skip prompt (60s grace, 15min cooldown)
+- **Report** — per-job totals, session list with filters, CSV export, SQLite backup
+- **System tray** — Fyne desktop tray on supported platforms (Open, Today, Show/Hide HUD, Quit)
+- **SQLite** — `~/.config/TrackApp/track-app.sqlite` on Linux (compatible with Swift app DB)
 
 ## Build (Linux / NixOS)
 
@@ -18,9 +19,9 @@ make build
 make run
 ```
 
-## macOS / Windows
+Requires a display for the GUI. On Linux, install `xdotool` for HUD corner positioning and foreground window detection.
 
-Install Go 1.22+ and run:
+## macOS / Windows
 
 ```bash
 go mod tidy
@@ -29,10 +30,25 @@ go build -o trackapp .
 
 On macOS, grant Accessibility permission for window title capture.
 
-## Database
+## Database paths
 
-Uses the same tables as the Swift app. Copy your existing database to:
+| OS      | Path |
+|---------|------|
+| Linux   | `~/.config/TrackApp/track-app.sqlite` |
+| macOS   | `~/Library/Application Support/TrackApp/track-app.sqlite` |
+| Windows | `%AppData%\TrackApp\track-app.sqlite` |
 
-- Linux: `~/.config/TrackApp/track-app.sqlite`
-- macOS: `~/Library/Application Support/TrackApp/track-app.sqlite`
-- Windows: `%AppData%\TrackApp\track-app.sqlite`
+Copy an existing Swift Track App database to the path above to keep your data.
+
+## Parity vs Swift app
+
+| Feature | Go | Swift |
+|---------|----|-------|
+| Floating HUD | ✓ | ✓ |
+| Auto-track + Start/Skip | ✓ | ✓ |
+| Project rules | ✓ | ✓ |
+| Activity log | ✓ | ✓ |
+| Report + CSV export | ✓ | ✓ |
+| CSV import | — | ✓ |
+| Always-on-top HUD | partial | ✓ |
+| Menu bar (macOS) | tray | ✓ |

@@ -36,6 +36,7 @@ type prefsData struct {
 	RecentTimerIDs []string               `json:"recentTimerIds"`
 	AutoStart      *models.AutoStartPrompt `json:"autoStartPrompt,omitempty"`
 	ShowHUDOnLaunch bool                  `json:"showHudOnLaunch"`
+	HUDCorner       int                   `json:"hudCorner"`
 }
 
 func (c *Coordinator) loadPrefs() prefsData {
@@ -181,6 +182,23 @@ func (c *Coordinator) SetShowHUDOnLaunch(v bool) {
 	p := c.loadPrefs()
 	p.ShowHUDOnLaunch = v
 	c.savePrefs(p)
+}
+
+func (c *Coordinator) HUDCorner() int {
+	return c.loadPrefs().HUDCorner
+}
+
+func (c *Coordinator) SetHUDCorner(corner int) {
+	p := c.loadPrefs()
+	p.HUDCorner = corner % 4
+	c.savePrefs(p)
+}
+
+func (c *Coordinator) CycleHUDCorner() int {
+	p := c.loadPrefs()
+	p.HUDCorner = (p.HUDCorner + 1) % 4
+	c.savePrefs(p)
+	return p.HUDCorner
 }
 
 func (c *Coordinator) AutoStartPrompt() *models.AutoStartPrompt {

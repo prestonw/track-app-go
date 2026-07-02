@@ -27,7 +27,7 @@ func main() {
 	}
 	mainWin.Show()
 
-	go runTray(core, hud, mainWin)
+	ui.SetupSystray(fyneApp, core, hud, mainWin)
 
 	fyneApp.Run()
 }
