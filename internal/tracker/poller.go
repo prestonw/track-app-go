@@ -4,13 +4,13 @@ import (
 	"time"
 
 	"github.com/prestonw/track-app-go/internal/models"
-	"github.com/prestonw/track-app-go/internal/monitor"
+	"github.com/prestonw/track-app-go/internal/platform"
 	"github.com/prestonw/track-app-go/internal/store"
 )
 
 // Poller samples foreground context periodically (like ActivityMonitor).
 type Poller struct {
-	Monitor monitor.Monitor
+	Monitor platform.ForegroundMonitor
 	Store   *store.Store
 	Tracker *ProjectTracker
 
@@ -19,7 +19,7 @@ type Poller struct {
 	hasLast  bool
 }
 
-func NewPoller(mon monitor.Monitor, s *store.Store, tr *ProjectTracker) *Poller {
+func NewPoller(mon platform.ForegroundMonitor, s *store.Store, tr *ProjectTracker) *Poller {
 	return &Poller{Monitor: mon, Store: s, Tracker: tr, stop: make(chan struct{})}
 }
 

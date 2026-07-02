@@ -3,7 +3,7 @@ package app
 import (
 	"sync"
 
-	"github.com/prestonw/track-app-go/internal/monitor"
+	"github.com/prestonw/track-app-go/internal/platform"
 	"github.com/prestonw/track-app-go/internal/store"
 	"github.com/prestonw/track-app-go/internal/timer"
 	"github.com/prestonw/track-app-go/internal/tracker"
@@ -16,7 +16,7 @@ type TrackApp struct {
 	Coordinator *timer.Coordinator
 	Tracker     *tracker.ProjectTracker
 	Poller      *tracker.Poller
-	Monitor     monitor.Monitor
+	Platform    *platform.Default
 
 	mu        sync.RWMutex
 	listeners []func()
@@ -27,11 +27,12 @@ func New() (*TrackApp, error) {
 	if err != nil {
 		return nil, err
 	}
-	core := &TrackApp{Store: s, Monitor: monitor.New()}
+	plat := platform.New()
+	core := &TrackApp{Store: s, Platform: plat}
 	core.Manager = timer.NewManager(s, func() { core.Notify() })
 	core.Coordinator = timer.NewCoordinator(s, core.Manager)
 	core.Tracker = tracker.New(s, core.Manager, core.Coordinator, func() { core.Notify() })
-	core.Poller = tracker.NewPoller(core.Monitor, s, core.Tracker)
+	core.Poller = tracker.NewPoller(plat.Foreground(), s, core.Tracker)
 	core.Poller.Start()
 	return core, nil
 }

@@ -1,6 +1,6 @@
 //go:build linux
 
-package monitor
+package platform
 
 import (
 	"os"
@@ -10,26 +10,37 @@ import (
 	"github.com/prestonw/track-app-go/internal/models"
 )
 
-type linuxMonitor struct{}
+type linuxForeground struct{}
 
-func newPlatform() Monitor { return linuxMonitor{} }
+func newForeground() foregroundBackend { return linuxForeground{} }
 
-func (linuxMonitor) Trusted() bool { return commandExists("xdotool") || commandExists("xprop") }
-
-func (linuxMonitor) TrustHint() string {
+func (linuxForeground) level() ForegroundLevel {
 	if commandExists("xdotool") {
-		return "X11 tools detected — basic window title tracking available."
+		return ForegroundFull
 	}
-	return "Install xdotool or xprop for window title tracking on X11."
+	if commandExists("xprop") {
+		return ForegroundBasic
+	}
+	return ForegroundNone
 }
 
-func (linuxMonitor) CurrentForeground() models.ForegroundContext {
+func (linuxForeground) Trusted() bool {
+	return commandExists("xdotool") || commandExists("xprop")
+}
+
+func (linuxForeground) TrustHint() string {
+	if commandExists("xdotool") {
+		return "X11 tools detected — window title and process tracking available."
+	}
+	return "Install xdotool (recommended) or xprop for foreground tracking on X11/Wayland XWayland."
+}
+
+func (linuxForeground) CurrentForeground() models.ForegroundContext {
 	ctx := models.ForegroundContext{}
 	if commandExists("xdotool") {
 		out, err := exec.Command("xdotool", "getactivewindow", "getwindowname").Output()
 		if err == nil {
 			ctx.WindowTitle = strings.TrimSpace(string(out))
-			ctx.AppName = ctx.WindowTitle
 		}
 		pidOut, err := exec.Command("xdotool", "getactivewindow", "getwindowpid").Output()
 		if err == nil {
@@ -39,6 +50,9 @@ func (linuxMonitor) CurrentForeground() models.ForegroundContext {
 				ctx.AppName = strings.TrimSpace(string(comm))
 				ctx.BundleID = ctx.AppName
 			}
+		}
+		if ctx.AppName == "" {
+			ctx.AppName = ctx.WindowTitle
 		}
 	}
 	return ctx

@@ -14,6 +14,7 @@ import (
 	"github.com/prestonw/track-app-go/internal/app"
 	"github.com/prestonw/track-app-go/internal/format"
 	"github.com/prestonw/track-app-go/internal/models"
+	"github.com/prestonw/track-app-go/internal/platform"
 )
 
 type MainWindow struct {
@@ -250,7 +251,7 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 		m.app.Notify()
 		name.SetText("")
 	})
-	left := widget.NewCard("Projects", m.app.Monitor.TrustHint(), container.NewVBox(name, clientSel, timerSel, auto, addProj))
+	left := widget.NewCard("Projects", m.app.Platform.Capabilities().ForegroundHint, container.NewVBox(name, clientSel, timerSel, auto, addProj))
 
 	projectList := widget.NewList(
 		func() int { return len(m.app.Store.Projects) },
@@ -272,7 +273,7 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 	kindSel := widget.NewSelect(kindOpts, nil)
 	kindSel.SetSelected(kindOpts[0])
 	capture := widget.NewButton("Use current window", func() {
-		ctx := m.app.Monitor.CurrentForeground()
+		ctx := m.app.Platform.Foreground().CurrentForeground()
 		if ctx.BundleID != "" {
 			kindSel.SetSelected(string(models.RuleAppBundle))
 			pattern.SetText(ctx.BundleID)
@@ -374,8 +375,37 @@ func (m *MainWindow) buildSettings() fyne.CanvasObject {
 	currSel := widget.NewSelect(currOpts, func(code string) { format.DisplayCurrency = code; m.app.Notify() })
 	currSel.SetSelected(format.DisplayCurrency)
 
+	cap := m.app.Platform.Capabilities()
+	fgStatus := "not available"
+	switch cap.Foreground {
+	case platform.ForegroundFull:
+		if cap.ForegroundTrusted {
+			fgStatus = "full (trusted)"
+		} else {
+			fgStatus = "limited — permission required"
+		}
+	case platform.ForegroundBasic:
+		fgStatus = "basic"
+	}
+	snapStatus := "unavailable"
+	if cap.WindowCornerSnap {
+		snapStatus = "available"
+	}
+	refreshPlat := widget.NewButton("Refresh platform status", func() {
+		cap = m.app.Platform.RefreshCapabilities()
+		m.app.Notify()
+	})
+	platformCard := widget.NewCard("Platform", string(cap.OS)+" ("+cap.GoOS+")", container.NewVBox(
+		widget.NewLabel("Foreground tracking: "+fgStatus),
+		widget.NewLabel(cap.ForegroundHint),
+		widget.NewLabel("HUD corner snap: "+snapStatus),
+		widget.NewLabel(cap.WindowHint),
+		refreshPlat,
+	))
+
 	return container.NewVBox(
 		headingLabel("Settings"),
+		platformCard,
 		widget.NewCard("Floating timer", "", container.NewVBox(showHUD, container.NewHBox(showNow, hideNow))),
 		widget.NewCard("Display currency", "", currSel),
 	)

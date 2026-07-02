@@ -7,8 +7,8 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/prestonw/track-app-go/internal/app"
-	hudpos "github.com/prestonw/track-app-go/internal/hud"
 	"github.com/prestonw/track-app-go/internal/format"
+	"github.com/prestonw/track-app-go/internal/platform"
 )
 
 type HUD struct {
@@ -34,7 +34,7 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 	}
 	h.window.SetFixedSize(true)
 	h.window.Resize(h.size)
-	h.window.SetTitle("TrackApp HUD")
+	h.window.SetTitle(platform.HUDWindowTitle)
 	h.window.SetCloseIntercept(func() { h.Hide() })
 
 	h.clock = widget.NewLabel("00:00:00")
@@ -68,7 +68,7 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 func (h *HUD) Show() {
 	h.visible = true
 	h.window.Show()
-	hudpos.MoveActiveWindow(h.app.Coordinator.HUDCorner(), int(h.size.Width), int(h.size.Height))
+	h.placeHUD()
 	h.refresh()
 }
 
@@ -89,7 +89,16 @@ func (h *HUD) Toggle() {
 
 func (h *HUD) cycleCorner() {
 	h.app.Coordinator.CycleHUDCorner()
-	hudpos.MoveActiveWindow(h.app.Coordinator.HUDCorner(), int(h.size.Width), int(h.size.Height))
+	h.placeHUD()
+}
+
+func (h *HUD) placeHUD() {
+	h.app.Platform.Window().PlaceByTitle(
+		platform.HUDWindowTitle,
+		platform.CornerFromInt(h.app.Coordinator.HUDCorner()),
+		int(h.size.Width),
+		int(h.size.Height),
+	)
 }
 
 func (h *HUD) refresh() {
