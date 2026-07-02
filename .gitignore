@@ -1,0 +1,4 @@
+bin/
+trackapp
+*.exe
+.DS_Store
