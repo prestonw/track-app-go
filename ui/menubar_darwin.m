@@ -40,7 +40,7 @@ void trackapp_menubar_install(void) {
         [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
     }
     gTarget = [[TrackAppMenuTarget alloc] init];
-    gStatusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSStatusItemVariableLength];
+    gStatusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
     gStatusItem.button.toolTip = @"Track App";
 
     NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Track App"];
