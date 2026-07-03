@@ -67,8 +67,8 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 	h.body = container.NewStack(bg, container.NewPadded(inner))
 	h.window.SetContent(h.body)
 
-	a.OnChange(func() { h.refresh() })
-	h.refresh()
+	a.OnChange(func() { onMain(h.refresh) })
+	onMain(h.refresh)
 	return h
 }
 
@@ -140,6 +140,7 @@ func (h *HUD) refreshBanner() {
 	h.banner.Add(label)
 	h.banner.Add(start)
 	h.banner.Add(skip)
+	h.banner.Refresh()
 }
 
 func (h *HUD) showJobMenu() {

@@ -36,4 +36,6 @@ func SetupSystray(fyneApp fyne.App, core *app.TrackApp, hud *HUD, mainWin *MainW
 	}
 	setMenu()
 	desk.SetSystemTrayIcon(AppIcon())
+
+	core.OnChange(func() { onMain(setMenu) })
 }

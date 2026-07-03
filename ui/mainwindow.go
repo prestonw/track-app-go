@@ -79,7 +79,7 @@ func NewMainWindow(a *app.TrackApp, fyneApp fyne.App, hud *HUD) *MainWindow {
 	shell := container.NewBorder(nil, nil, sidebarPanel(sidebar), nil, m.content)
 	m.window.SetContent(shell)
 
-	a.OnChange(func() { m.refreshCurrent() })
+	a.OnChange(func() { onMain(m.refreshCurrent) })
 	m.nav.Select(0)
 	return m
 }
