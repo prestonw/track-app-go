@@ -71,7 +71,7 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 	)
 
 	h.banner = container.NewHBox()
-	hint := mutedLabel("Tap empty space to move between corners")
+	hint := mutedLabel("Tap empty space to move · " + BuildVersion())
 
 	top := container.NewVBox(h.jobBtn, hint)
 	mid := newTapPad(h.cycleCorner)

@@ -3,6 +3,7 @@
 
 extern void trackapp_menu_open(void);
 extern void trackapp_menu_today(void);
+extern void trackapp_menu_jobs(void);
 extern void trackapp_menu_settings(void);
 extern void trackapp_menu_toggle_hud(void);
 extern void trackapp_menu_quit(void);
@@ -13,6 +14,7 @@ extern void trackapp_menu_quit(void);
 @implementation TrackAppMenuTarget
 - (void)openApp:(id)sender { trackapp_menu_open(); }
 - (void)openToday:(id)sender { trackapp_menu_today(); }
+- (void)openJobs:(id)sender { trackapp_menu_jobs(); }
 - (void)openSettings:(id)sender { trackapp_menu_settings(); }
 - (void)toggleHUD:(id)sender { trackapp_menu_toggle_hud(); }
 - (void)quitApp:(id)sender { trackapp_menu_quit(); }
@@ -49,6 +51,7 @@ void trackapp_menubar_install(void) {
 
     trackappAddItem(menu, @"Open Track App", @selector(openApp:), @"o");
     trackappAddItem(menu, @"Today", @selector(openToday:), @"t");
+    trackappAddItem(menu, @"Job Timers", @selector(openJobs:), @"j");
     trackappAddItem(menu, @"Settings…", @selector(openSettings:), @",");
     gHUDItem = trackappAddItem(menu, @"Show Floating Timer", @selector(toggleHUD:), @"f");
     [menu addItem:[NSMenuItem separatorItem]];

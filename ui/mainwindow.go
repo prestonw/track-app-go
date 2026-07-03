@@ -22,7 +22,7 @@ type MainWindow struct {
 	hud      *HUD
 	window   fyne.Window
 	content  *fyne.Container
-	nav      *widget.List
+	navBox   *fyne.Container
 	sections []string
 
 	selectedProject int
@@ -57,27 +57,16 @@ func NewMainWindow(a *app.TrackApp, fyneApp fyne.App, hud *HUD) *MainWindow {
 	m.window.SetMaster()
 	m.window.SetIcon(AppIcon())
 
-	m.nav = widget.NewList(
-		func() int { return len(m.sections) },
-		func() fyne.CanvasObject {
-			l := widget.NewLabel("")
-			return l
-		},
-		func(i widget.ListItemID, o fyne.CanvasObject) {
-			l := o.(*widget.Label)
-			l.SetText(navLabel(m.sections[i]))
-			if int(i) == currentSection {
-				l.TextStyle = fyne.TextStyle{Bold: true}
-			} else {
-				l.TextStyle = fyne.TextStyle{}
-			}
-		},
-	)
-	m.nav.OnSelected = func(id widget.ListItemID) { m.showSection(int(id)) }
-
+	m.navBox = container.NewVBox()
+	for i, section := range m.sections {
+		i, section := i, section
+		btn := widget.NewButton(navLabel(section), func() { m.selectSection(i) })
+		btn.Importance = widget.LowImportance
+		m.navBox.Add(btn)
+	}
 	m.content = container.NewMax()
-	navScroll := container.NewVScroll(m.nav)
-	navScroll.SetMinSize(fyne.NewSize(sidebarW, 320))
+	navScroll := container.NewVScroll(m.navBox)
+	navScroll.SetMinSize(fyne.NewSize(sidebarW, 420))
 	shell := container.NewBorder(nil, nil, sidebarPanel(navScroll), nil, m.content)
 	m.window.SetContent(shell)
 	m.window.SetCloseIntercept(func() { m.window.Hide() })
@@ -92,7 +81,7 @@ func (m *MainWindow) Window() fyne.Window { return m.window }
 func (m *MainWindow) Show() {
 	if !m.ready {
 		m.ready = true
-		m.nav.Select(0)
+		m.selectSection(0)
 	}
 	m.window.Show()
 	m.window.RequestFocus()
@@ -103,10 +92,28 @@ func (m *MainWindow) OpenSection(name string) {
 	m.Show()
 	for i, s := range m.sections {
 		if s == name {
-			m.nav.Select(i)
+			m.selectSection(i)
 			return
 		}
 	}
+}
+
+func (m *MainWindow) selectSection(i int) {
+	if i < 0 || i >= len(m.sections) {
+		return
+	}
+	for j, obj := range m.navBox.Objects {
+		btn, ok := obj.(*widget.Button)
+		if !ok {
+			continue
+		}
+		if j == i {
+			btn.Importance = widget.HighImportance
+		} else {
+			btn.Importance = widget.LowImportance
+		}
+	}
+	m.showSection(i)
 }
 
 var currentSection int

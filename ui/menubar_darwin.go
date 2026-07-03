@@ -40,6 +40,13 @@ func trackapp_menu_today() {
 	}
 }
 
+//export trackapp_menu_jobs
+func trackapp_menu_jobs() {
+	if activeMenuBar != nil && activeMenuBar.mainWin != nil {
+		onMain(func() { activeMenuBar.mainWin.OpenSection("Job Timers") })
+	}
+}
+
 //export trackapp_menu_settings
 func trackapp_menu_settings() {
 	if activeMenuBar != nil && activeMenuBar.mainWin != nil {
