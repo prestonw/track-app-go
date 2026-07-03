@@ -99,6 +99,32 @@ CREATE TABLE IF NOT EXISTS activity_log (
 	return nil
 }
 
+// ResetAll wipes local data so the app can be tested from a clean slate.
+func (s *Store) ResetAll() error {
+	queries := []string{
+		"DELETE FROM activity_log",
+		"DELETE FROM project_rules",
+		"DELETE FROM projects",
+		"DELETE FROM sessions",
+		"DELETE FROM timers",
+		"DELETE FROM clients",
+		"DELETE FROM custom_currencies",
+	}
+	for _, q := range queries {
+		if _, err := s.db.Exec(q); err != nil {
+			return err
+		}
+	}
+	s.Timers = nil
+	s.Sessions = nil
+	s.Clients = nil
+	s.CustomCurrencies = nil
+	s.Projects = nil
+	s.ProjectRules = nil
+	s.ActivityLog = nil
+	return nil
+}
+
 func (s *Store) Reload() error {
 	var err error
 	if s.Timers, err = s.fetchTimers(); err != nil {

@@ -12,4 +12,6 @@ func (stubWindow) TrustHint() string {
 	return "HUD corner snap is not available on this platform."
 }
 
+func (stubWindow) PlaceHUD(Corner, int, int, bool) {}
+
 func (stubWindow) PlaceByTitle(string, Corner, int, int) {}

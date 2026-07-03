@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/prestonw/track-app-go/internal/app"
@@ -26,10 +27,11 @@ type HUD struct {
 	play     *widget.Button
 	visible  bool
 	size     fyne.Size
+	baseSize fyne.Size
 }
 
 func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
-	h := &HUD{app: a, size: fyne.NewSize(236, 80)}
+	h := &HUD{app: a, baseSize: fyne.NewSize(236, 84), size: fyne.NewSize(236, 84)}
 	if drv, ok := fyneApp.Driver().(desktop.Driver); ok {
 		h.window = drv.CreateSplashWindow()
 		h.window.SetPadded(false)
@@ -62,16 +64,19 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 
 	clockRow := container.NewHBox(
 		newTapPad(h.cycleCorner),
-		container.NewCenter(h.clock),
+		layout.NewSpacer(),
+		h.clock,
 		playBox,
 		newTapPad(h.cycleCorner),
 	)
 
 	h.banner = container.NewHBox()
+	hint := mutedLabel("Tap empty space to move between corners")
 
-	top := h.jobBtn
+	top := container.NewVBox(h.jobBtn, hint)
 	mid := newTapPad(h.cycleCorner)
 	inner := container.NewBorder(nil, clockRow, nil, nil, container.NewVBox(h.banner, top, mid))
+
 	bg := canvas.NewRectangle(colorSurface)
 	bg.CornerRadius = cardRadius
 	bg.StrokeColor = colorAccent
@@ -86,8 +91,10 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 func (h *HUD) Show() {
 	h.visible = true
 	h.window.Show()
-	h.refresh()
-	h.placeHUDSoon()
+	onMain(func() {
+		h.refresh()
+		h.placeHUD(false)
+	})
 }
 
 func (h *HUD) Hide() {
@@ -107,30 +114,33 @@ func (h *HUD) Toggle() {
 
 func (h *HUD) cycleCorner() {
 	h.app.Coordinator.CycleHUDCorner()
-	h.placeHUDSoon()
+	h.placeHUD(true)
 }
 
-func (h *HUD) placeHUDSoon() {
-	corner := h.app.Coordinator.HUDCorner()
+func (h *HUD) placeHUD(animate bool) {
+	if !h.visible {
+		return
+	}
+	corner := platform.CornerFromInt(h.app.Coordinator.HUDCorner())
 	w, ht := int(h.size.Width), int(h.size.Height)
-	title := platform.HUDWindowTitle
+	win := h.app.Platform.Window()
+	place := func() { win.PlaceHUD(corner, w, ht, animate) }
+	place()
+	// Fyne splash windows center on first show — override after the toolkit settles.
 	go func() {
-		delays := []time.Duration{0, 80 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond}
-		for _, d := range delays {
-			if d > 0 {
-				time.Sleep(d)
-			}
+		for _, d := range []time.Duration{30 * time.Millisecond, 120 * time.Millisecond, 320 * time.Millisecond} {
+			time.Sleep(d)
 			if !h.visible {
 				return
 			}
-			h.app.Platform.Window().PlaceByTitle(title, platform.CornerFromInt(corner), w, ht)
+			onMain(place)
 		}
 	}()
 }
 
 func (h *HUD) refresh() {
 	title, _, elapsed, running := h.app.DisplayContext()
-	if title == "" {
+	if title == "" || title == "Track App" {
 		title = "Select job"
 	}
 	h.jobBtn.SetText(title + " ▾")
@@ -148,6 +158,7 @@ func (h *HUD) refreshBanner() {
 	prompt := h.app.Coordinator.AutoStartPrompt()
 	if prompt == nil {
 		h.banner.Hide()
+		h.size = h.baseSize
 		h.window.Resize(h.size)
 		h.body.Refresh()
 		return
@@ -165,8 +176,9 @@ func (h *HUD) refreshBanner() {
 	h.banner.Add(start)
 	h.banner.Add(skip)
 	h.banner.Refresh()
-	h.window.Resize(fyne.NewSize(h.size.Width, h.size.Height+36))
-	h.placeHUDSoon()
+	h.size = fyne.NewSize(h.baseSize.Width, h.baseSize.Height+40)
+	h.window.Resize(h.size)
+	h.placeHUD(false)
 }
 
 func (h *HUD) showJobMenu() {
@@ -197,6 +209,7 @@ func (h *HUD) showJobMenu() {
 		}
 	}
 	if len(menuItems) <= 2 {
+		h.showQuickJobDialog()
 		return
 	}
 	pop := widget.NewPopUpMenu(fyne.NewMenu("Jobs", menuItems...), h.window.Canvas())

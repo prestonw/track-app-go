@@ -26,6 +26,7 @@ type MainWindow struct {
 	sections []string
 
 	selectedProject int
+	ready             bool
 
 	reportRange        string
 	reportType         string
@@ -80,11 +81,16 @@ func NewMainWindow(a *app.TrackApp, fyneApp fyne.App, hud *HUD) *MainWindow {
 	m.window.SetContent(shell)
 
 	a.OnChange(func() { onMain(m.refreshCurrent) })
-	m.nav.Select(0)
 	return m
 }
 
-func (m *MainWindow) Show() { m.window.Show() }
+func (m *MainWindow) Show() {
+	if !m.ready {
+		m.ready = true
+		m.nav.Select(0)
+	}
+	m.window.Show()
+}
 
 var currentSection int
 
@@ -382,7 +388,14 @@ func (m *MainWindow) buildActivity() fyne.CanvasObject {
 func (m *MainWindow) buildSettings() fyne.CanvasObject {
 	showHUD := widget.NewCheck("Show floating timer on launch", nil)
 	showHUD.SetChecked(m.app.Coordinator.ShowHUDOnLaunch())
-	showHUD.OnChanged = func(v bool) { m.app.Coordinator.SetShowHUDOnLaunch(v) }
+	showHUD.OnChanged = func(v bool) {
+		m.app.Coordinator.SetShowHUDOnLaunch(v)
+		if v {
+			m.hud.Show()
+		} else {
+			m.hud.Hide()
+		}
+	}
 
 	showNow := widget.NewButton("Show floating timer now", func() { m.hud.Show() })
 	hideNow := widget.NewButton("Hide floating timer", func() { m.hud.Hide() })
@@ -427,8 +440,44 @@ func (m *MainWindow) buildSettings() fyne.CanvasObject {
 		m.app.Coordinator.SetOnboardingComplete(false)
 		ShowOnboardingIfNeeded(m.app, m.fyneApp, m, m.hud)
 	})
-	body := container.NewVBox(platformCard, hudCard, currCard, replayOnboarding)
+	resetApp := widget.NewButton("Reset app data…", func() { m.confirmResetApp() })
+	dataCard := fluidCardTitled("Data", "Restore factory defaults for testing", container.NewVBox(
+		mutedLabel("Deletes all jobs, projects, sessions, activity, and preferences. Cannot be undone."),
+		resetApp,
+		replayOnboarding,
+	), cardDefault)
+	body := container.NewVBox(platformCard, hudCard, currCard, dataCard)
 	return pageChrome("Settings", "App preferences and platform integration status.", body)
+}
+
+func (m *MainWindow) confirmResetApp() {
+	dialog.ShowConfirm(
+		"Reset Track App",
+		"Delete all jobs, projects, sessions, activity, and preferences?\n\nThis cannot be undone.",
+		func(ok bool) {
+			if !ok {
+				return
+			}
+			if err := m.app.Store.ResetAll(); err != nil {
+				dialog.ShowError(err, m.window)
+				return
+			}
+			m.app.Coordinator.ResetToDefaults()
+			format.DisplayCurrency = "GBP"
+			if m.app.Coordinator.ShowHUDOnLaunch() {
+				m.hud.Show()
+			} else {
+				m.hud.Hide()
+			}
+			m.app.Notify()
+			m.showSection(currentSection)
+			if m.app.Coordinator.NeedsOnboarding() {
+				ShowOnboardingIfNeeded(m.app, m.fyneApp, m, m.hud)
+			}
+			dialog.ShowInformation("Reset complete", "App restored to factory defaults.", m.window)
+		},
+		m.window,
+	)
 }
 
 func (m *MainWindow) popupOpts(clients []models.Client, none string) ([]string, []string) {

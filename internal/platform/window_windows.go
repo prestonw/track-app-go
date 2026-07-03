@@ -19,6 +19,10 @@ func (windowsWindow) TrustHint() string {
 	return "HUD corner snap uses Win32 MoveWindow on the foreground window."
 }
 
+func (w windowsWindow) PlaceHUD(corner Corner, width, height int, _ bool) {
+	w.PlaceByTitle(HUDWindowTitle, corner, width, height)
+}
+
 func (w windowsWindow) PlaceByTitle(title string, corner Corner, width, height int) {
 	sw, sh := w.screenSize()
 	x, y := Origin(corner, sw, sh, width, height, 20)

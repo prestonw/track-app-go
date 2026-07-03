@@ -21,18 +21,19 @@ func main() {
 	fyneApp.Settings().SetTheme(ui.TrackTheme())
 
 	hud := ui.NewHUD(core, fyneApp)
-	if core.Coordinator.ShowHUDOnLaunch() {
-		hud.Show()
-	}
-
 	mainWin := ui.NewMainWindow(core, fyneApp, hud)
 	ui.SetupSystray(fyneApp, core, hud, mainWin)
 
-	if core.Coordinator.NeedsOnboarding() {
-		ui.ShowOnboardingIfNeeded(core, fyneApp, mainWin, hud)
-	} else {
-		mainWin.Show()
-	}
+	fyneApp.Lifecycle().SetOnStarted(func() {
+		if core.Coordinator.ShowHUDOnLaunch() {
+			hud.Show()
+		}
+		if core.Coordinator.NeedsOnboarding() {
+			ui.ShowOnboardingIfNeeded(core, fyneApp, mainWin, hud)
+		} else {
+			mainWin.Show()
+		}
+	})
 
 	fyneApp.Run()
 }

@@ -35,14 +35,15 @@ type prefsData struct {
 	PrimaryTimerID string                 `json:"primaryTimerId"`
 	RecentTimerIDs []string               `json:"recentTimerIds"`
 	AutoStart      *models.AutoStartPrompt `json:"autoStartPrompt,omitempty"`
-	ShowHUDOnLaunch     bool `json:"showHudOnLaunch"`
+	ShowHUDOnLaunch     *bool `json:"showHudOnLaunch,omitempty"`
 	HUDCorner           int  `json:"hudCorner"`
 	OnboardingComplete  bool `json:"onboardingComplete"`
 }
 
 func (c *Coordinator) loadPrefs() prefsData {
 	var p prefsData
-	p.ShowHUDOnLaunch = true
+	showHUD := true
+	p.ShowHUDOnLaunch = &showHUD
 	p.HUDCorner = 3 // bottom-right, matches Swift app default
 	b, err := os.ReadFile(c.prefs.path)
 	if err != nil {
@@ -177,12 +178,16 @@ func (c *Coordinator) DisplayContext() (title, subtitle string, elapsed int, run
 }
 
 func (c *Coordinator) ShowHUDOnLaunch() bool {
-	return c.loadPrefs().ShowHUDOnLaunch
+	p := c.loadPrefs()
+	if p.ShowHUDOnLaunch == nil {
+		return true
+	}
+	return *p.ShowHUDOnLaunch
 }
 
 func (c *Coordinator) SetShowHUDOnLaunch(v bool) {
 	p := c.loadPrefs()
-	p.ShowHUDOnLaunch = v
+	p.ShowHUDOnLaunch = &v
 	c.savePrefs(p)
 }
 
@@ -198,6 +203,11 @@ func (c *Coordinator) SetOnboardingComplete(v bool) {
 	p := c.loadPrefs()
 	p.OnboardingComplete = v
 	c.savePrefs(p)
+}
+
+// ResetToDefaults removes saved preferences so factory defaults apply again.
+func (c *Coordinator) ResetToDefaults() {
+	_ = os.Remove(c.prefs.path)
 }
 
 func (c *Coordinator) HUDCorner() int {

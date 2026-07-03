@@ -24,6 +24,10 @@ func (w linuxWindow) TrustHint() string {
 	return "Install xdotool for HUD corner snap on X11."
 }
 
+func (w linuxWindow) PlaceHUD(corner Corner, width, height int, _ bool) {
+	w.PlaceByTitle(HUDWindowTitle, corner, width, height)
+}
+
 func (w linuxWindow) PlaceByTitle(title string, corner Corner, width, height int) {
 	if !w.canPlace() {
 		return
