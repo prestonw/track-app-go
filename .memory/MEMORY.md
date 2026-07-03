@@ -105,7 +105,7 @@ Cross-compile macOS **from Linux fails** (no Xcode toolchain). Build on Mac.
 | `8014516` | Auto-track, report UI, Fyne systray |
 | `30406bf` | Initial Go scaffold |
 
-**Uncommitted (in progress):** fluid UI, app icon restore, onboarding — finish commit after Mac smoke test.
+**Latest:** `caf86af` — fluid UI, app icon, onboarding. Smoke test on Mac next.
 
 ---
 
