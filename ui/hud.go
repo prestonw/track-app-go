@@ -218,7 +218,7 @@ func (h *HUD) showJobMenu() {
 }
 
 func (h *HUD) timerMenuItem(id string) *fyne.MenuItem {
-	id := id
+	timerID := id
 	for _, t := range h.app.Store.Timers {
 		if t.ID != id {
 			continue
@@ -228,7 +228,7 @@ func (h *HUD) timerMenuItem(id string) *fyne.MenuItem {
 			label = "▶ " + label
 		}
 		return fyne.NewMenuItem(label, func() {
-			h.app.Coordinator.SetFocus(id, false)
+			h.app.Coordinator.SetFocus(timerID, false)
 		})
 	}
 	return nil
