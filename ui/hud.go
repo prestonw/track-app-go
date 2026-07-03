@@ -88,6 +88,9 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 	return h
 }
 
+// Window returns the HUD Fyne window.
+func (h *HUD) Window() fyne.Window { return h.window }
+
 func (h *HUD) Show() {
 	h.visible = true
 	h.window.Show()
