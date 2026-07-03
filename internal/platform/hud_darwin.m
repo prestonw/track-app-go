@@ -152,5 +152,18 @@ void trackapp_place_hud_window(int corner, int width, int height, double margin,
         size = NSMakeSize((CGFloat)width, (CGFloat)height);
     }
     NSRect frame = trackappCornerFrame(corner, size, screen, (CGFloat)margin);
+    NSRect vf = screen.visibleFrame;
+    if (frame.origin.x < vf.origin.x) {
+        frame.origin.x = vf.origin.x + (CGFloat)margin;
+    }
+    if (frame.origin.y < vf.origin.y) {
+        frame.origin.y = vf.origin.y + (CGFloat)margin;
+    }
+    if (frame.origin.x + frame.size.width > vf.origin.x + vf.size.width) {
+        frame.origin.x = vf.origin.x + vf.size.width - frame.size.width - (CGFloat)margin;
+    }
+    if (frame.origin.y + frame.size.height > vf.origin.y + vf.size.height) {
+        frame.origin.y = vf.origin.y + vf.size.height - frame.size.height - (CGFloat)margin;
+    }
     trackappApplyFrame(win, frame, animate);
 }
