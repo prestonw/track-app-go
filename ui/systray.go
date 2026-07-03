@@ -21,10 +21,9 @@ func SetupSystray(fyneApp fyne.App, core *app.TrackApp, hud *HUD, mainWin *MainW
 		}
 		menu := fyne.NewMenu("Track App",
 			fyne.NewMenuItem("Open Track App", func() { mainWin.Show() }),
-			fyne.NewMenuItem("Today", func() {
-				mainWin.Show()
-				mainWin.nav.Select(0)
-			}),
+			fyne.NewMenuItem("Today", func() { mainWin.OpenSection("Today") }),
+			fyne.NewMenuItem("Job Timers", func() { mainWin.OpenSection("Job Timers") }),
+			fyne.NewMenuItem("Settings…", func() { mainWin.OpenSection("Settings") }),
 			fyne.NewMenuItem(hudLabel, func() {
 				hud.Toggle()
 				setMenu()

@@ -128,7 +128,7 @@ func (h *HUD) placeHUD(animate bool) {
 	place()
 	// Fyne splash windows center on first show — override after the toolkit settles.
 	go func() {
-		for _, d := range []time.Duration{30 * time.Millisecond, 120 * time.Millisecond, 320 * time.Millisecond} {
+		for _, d := range []time.Duration{50 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 1000 * time.Millisecond} {
 			time.Sleep(d)
 			if !h.visible {
 				return

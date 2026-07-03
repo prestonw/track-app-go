@@ -30,8 +30,6 @@ func main() {
 		}
 		if core.Coordinator.NeedsOnboarding() {
 			ui.ShowOnboardingIfNeeded(core, fyneApp, mainWin, hud)
-		} else {
-			mainWin.Show()
 		}
 	})
 

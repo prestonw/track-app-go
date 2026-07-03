@@ -90,7 +90,7 @@ func ShowOnboardingIfNeeded(core *app.TrackApp, fyneApp fyne.App, mainWin *MainW
 		case 4:
 			stepTitle.SetText("You're ready")
 			stepBody.Add(mutedLabel("Open Today to see live totals, or Projects to set up auto-tracking rules."))
-			stepBody.Add(mutedLabel("The app also lives in your system tray for quick access."))
+			stepBody.Add(mutedLabel("Click the menu bar icon to open the app — Settings and Reset live there."))
 		}
 		dots.SetText(onboardingDots(step))
 		stepBody.Refresh()
@@ -105,7 +105,6 @@ func ShowOnboardingIfNeeded(core *app.TrackApp, fyneApp fyne.App, mainWin *MainW
 		if showHUD.Checked {
 			hud.Show()
 		}
-		mainWin.Show()
 		core.Notify()
 	}
 

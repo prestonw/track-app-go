@@ -44,7 +44,7 @@ func (c *Coordinator) loadPrefs() prefsData {
 	var p prefsData
 	showHUD := true
 	p.ShowHUDOnLaunch = &showHUD
-	p.HUDCorner = 3 // bottom-right, matches Swift app default
+	p.HUDCorner = 1 // top-right default
 	b, err := os.ReadFile(c.prefs.path)
 	if err != nil {
 		return p

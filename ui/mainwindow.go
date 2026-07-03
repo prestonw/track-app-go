@@ -76,9 +76,11 @@ func NewMainWindow(a *app.TrackApp, fyneApp fyne.App, hud *HUD) *MainWindow {
 	m.nav.OnSelected = func(id widget.ListItemID) { m.showSection(int(id)) }
 
 	m.content = container.NewMax()
-	sidebar := container.NewGridWrap(fyne.NewSize(sidebarW, 40), m.nav)
-	shell := container.NewBorder(nil, nil, sidebarPanel(sidebar), nil, m.content)
+	navScroll := container.NewVScroll(m.nav)
+	navScroll.SetMinSize(fyne.NewSize(sidebarW, 320))
+	shell := container.NewBorder(nil, nil, sidebarPanel(navScroll), nil, m.content)
 	m.window.SetContent(shell)
+	m.window.SetCloseIntercept(func() { m.window.Hide() })
 
 	a.OnChange(func() { onMain(m.refreshCurrent) })
 	return m
@@ -90,6 +92,18 @@ func (m *MainWindow) Show() {
 		m.nav.Select(0)
 	}
 	m.window.Show()
+	m.window.RequestFocus()
+}
+
+// OpenSection shows the main window on the named sidebar section.
+func (m *MainWindow) OpenSection(name string) {
+	m.Show()
+	for i, s := range m.sections {
+		if s == name {
+			m.nav.Select(i)
+			return
+		}
+	}
 }
 
 var currentSection int
