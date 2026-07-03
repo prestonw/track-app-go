@@ -105,7 +105,15 @@ Cross-compile macOS **from Linux fails** (no Xcode toolchain). Build on Mac.
 | `8014516` | Auto-track, report UI, Fyne systray |
 | `30406bf` | Initial Go scaffold |
 
-**Latest:** `caf86af` — fluid UI, app icon, onboarding. Smoke test on Mac next.
+**Latest:** fluid UI + onboarding committed. **Push pending** — this host has no GitHub DNS; run from Mac:
+
+```bash
+cd track-app-go
+./scripts/push-github.sh
+# or: gh repo create prestonw/track-app-go --public --source=. --push
+```
+
+Remote: `git@github.com:prestonw/track-app-go.git`
 
 ---
 
