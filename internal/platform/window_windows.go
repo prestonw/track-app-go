@@ -21,7 +21,7 @@ func (windowsWindow) TrustHint() string {
 
 func (w windowsWindow) PlaceByTitle(title string, corner Corner, width, height int) {
 	sw, sh := w.screenSize()
-	x, y := Origin(corner, sw, sh, width, height, 16)
+	x, y := Origin(corner, sw, sh, width, height, 20)
 	script := fmt.Sprintf(`
 Add-Type @"
 using System;

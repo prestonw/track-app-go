@@ -43,6 +43,7 @@ type prefsData struct {
 func (c *Coordinator) loadPrefs() prefsData {
 	var p prefsData
 	p.ShowHUDOnLaunch = true
+	p.HUDCorner = 3 // bottom-right, matches Swift app default
 	b, err := os.ReadFile(c.prefs.path)
 	if err != nil {
 		return p

@@ -48,7 +48,7 @@ func placeActiveWindow(corner Corner, width, height int) {
 	}
 	var sw, sh int
 	fmt.Sscanf(string(geo), "%d %d", &sw, &sh)
-	x, y := Origin(corner, sw, sh, width, height, 16)
+	x, y := Origin(corner, sw, sh, width, height, 20)
 	_ = exec.Command("xdotool", "getactivewindow", "windowmove", strconv.Itoa(x), strconv.Itoa(y)).Run()
 }
 
@@ -59,7 +59,7 @@ func placeWindowID(winID string, corner Corner, width, height int) {
 	}
 	var sw, sh int
 	fmt.Sscanf(string(geo), "%d %d", &sw, &sh)
-	x, y := Origin(corner, sw, sh, width, height, 16)
+	x, y := Origin(corner, sw, sh, width, height, 20)
 	_ = exec.Command("xdotool", "windowmove", winID, strconv.Itoa(x), strconv.Itoa(y)).Run()
 }
 

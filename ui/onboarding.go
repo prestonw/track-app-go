@@ -31,7 +31,14 @@ func ShowOnboardingIfNeeded(core *app.TrackApp, fyneApp fyne.App, mainWin *MainW
 	jobName.SetPlaceHolder("e.g. Client work, Writing, Meetings")
 	showHUD := widget.NewCheck("Show floating timer on launch", nil)
 	showHUD.SetChecked(core.Coordinator.ShowHUDOnLaunch())
-	showHUD.OnChanged = func(v bool) { core.Coordinator.SetShowHUDOnLaunch(v) }
+	showHUD.OnChanged = func(v bool) {
+		core.Coordinator.SetShowHUDOnLaunch(v)
+		if v {
+			hud.Show()
+		} else {
+			hud.Hide()
+		}
+	}
 
 	stepTitle := widget.NewLabel("")
 	stepTitle.TextStyle = fyne.TextStyle{Bold: true}
@@ -59,9 +66,11 @@ func ShowOnboardingIfNeeded(core *app.TrackApp, fyneApp fyne.App, mainWin *MainW
 			stepBody.Add(widget.NewForm(widget.NewFormItem("Job name", jobName)))
 		case 2:
 			stepTitle.SetText("Floating timer")
-			stepBody.Add(mutedLabel("The HUD stays on screen while you work. Use ◢ to snap it to a corner."))
+			stepBody.Add(mutedLabel("The HUD stays on screen while you work. Click empty space on the panel to snap it between corners."))
 			stepBody.Add(showHUD)
-			stepBody.Add(primaryButton("Preview floating timer", func() { hud.Show() }))
+			if !hud.Visible() {
+				stepBody.Add(primaryButton("Preview floating timer", func() { hud.Show() }))
+			}
 		case 3:
 			stepTitle.SetText("Platform setup")
 			cap := core.Platform.Capabilities()
