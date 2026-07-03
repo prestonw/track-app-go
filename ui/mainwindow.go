@@ -86,6 +86,9 @@ func NewMainWindow(a *app.TrackApp, fyneApp fyne.App, hud *HUD) *MainWindow {
 	return m
 }
 
+// Window returns the underlying Fyne window (may be hidden).
+func (m *MainWindow) Window() fyne.Window { return m.window }
+
 func (m *MainWindow) Show() {
 	if !m.ready {
 		m.ready = true
@@ -460,7 +463,11 @@ func (m *MainWindow) buildSettings() fyne.CanvasObject {
 		resetApp,
 		replayOnboarding,
 	), cardDefault)
-	body := container.NewVBox(platformCard, hudCard, currCard, dataCard)
+	aboutCard := fluidCard(container.NewVBox(
+		mutedLabel("Build: "+BuildVersion()),
+		mutedLabel("On macOS, use Track App.app from scripts/build-macos-app.sh — not the bare trackapp binary."),
+	), cardDefault)
+	body := container.NewVBox(platformCard, hudCard, currCard, dataCard, aboutCard)
 	return pageChrome("Settings", "App preferences and platform integration status.", body)
 }
 

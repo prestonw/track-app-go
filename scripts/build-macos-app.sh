@@ -6,7 +6,8 @@ APP_NAME="Track App"
 BUNDLE="$ROOT/$APP_NAME.app"
 
 cd "$ROOT"
-go build -o trackapp .
+VERSION="$(git rev-parse --short HEAD 2>/dev/null || echo dev)"
+go build -ldflags "-X github.com/prestonw/track-app-go/ui.buildVersion=${VERSION}" -o trackapp .
 
 rm -rf "$BUNDLE"
 mkdir -p "$BUNDLE/Contents/MacOS"

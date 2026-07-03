@@ -28,6 +28,7 @@ func main() {
 		if core.Coordinator.ShowHUDOnLaunch() {
 			hud.Show()
 		}
+		ui.ShowAccessibilityPromptIfNeeded(core, mainWin.Window())
 		if core.Coordinator.NeedsOnboarding() {
 			ui.ShowOnboardingIfNeeded(core, fyneApp, mainWin, hud)
 		}
