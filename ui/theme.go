@@ -14,27 +14,41 @@ var _ fyne.Theme = (*trackTheme)(nil)
 func (trackTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
 	switch name {
 	case theme.ColorNameBackground:
-		return color.NRGBA{R: 22, G: 24, B: 28, A: 255}
+		return colorBG
 	case theme.ColorNameButton:
-		return color.NRGBA{R: 45, G: 110, B: 245, A: 255}
+		return colorPrimary
 	case theme.ColorNameDisabledButton:
-		return color.NRGBA{R: 55, G: 58, B: 64, A: 255}
+		return colorSurfaceAlt
 	case theme.ColorNameForeground:
-		return color.NRGBA{R: 230, G: 232, B: 235, A: 255}
+		return colorText
 	case theme.ColorNameInputBackground:
-		return color.NRGBA{R: 32, G: 35, B: 40, A: 255}
+		return colorSurface
 	case theme.ColorNamePlaceHolder:
-		return color.NRGBA{R: 120, G: 125, B: 135, A: 255}
+		return colorTextDim
 	case theme.ColorNamePrimary:
-		return color.NRGBA{R: 72, G: 140, B: 255, A: 255}
+		return colorAccent
 	case theme.ColorNameHover:
-		return color.NRGBA{R: 40, G: 44, B: 50, A: 255}
+		return colorSurfaceAlt
 	case theme.ColorNameSelection:
-		return color.NRGBA{R: 45, G: 90, B: 180, A: 120}
+		return colorAccentSoft
 	case theme.ColorNameScrollBar:
-		return color.NRGBA{R: 60, G: 64, B: 72, A: 180}
+		return colorBorder
 	case theme.ColorNameShadow:
-		return color.NRGBA{R: 0, G: 0, B: 0, A: 80}
+		return color.NRGBA{R: 0, G: 0, B: 0, A: 100}
+	case theme.ColorNameHeaderBackground:
+		return colorSurface
+	case theme.ColorNameMenuBackground:
+		return colorSurface
+	case theme.ColorNameOverlayBackground:
+		return color.NRGBA{R: 8, G: 12, B: 18, A: 220}
+	case theme.ColorNameSeparator:
+		return colorBorder
+	case theme.ColorNameDisabled:
+		return colorTextDim
+	case theme.ColorNameInputBorder:
+		return colorBorder
+	case theme.ColorNameFocus:
+		return colorAccent
 	}
 	return theme.DefaultTheme().Color(name, variant)
 }
@@ -50,13 +64,17 @@ func (t trackTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
 func (t trackTheme) Size(name fyne.ThemeSizeName) float32 {
 	switch name {
 	case theme.SizeNamePadding:
-		return 8
+		return 12
 	case theme.SizeNameInnerPadding:
-		return 6
+		return 10
 	case theme.SizeNameText:
 		return 14
 	case theme.SizeNameHeadingText:
-		return 20
+		return 22
+	case theme.SizeNameCaptionText:
+		return 12
+	case theme.SizeNameInlineIcon:
+		return 18
 	}
 	return theme.DefaultTheme().Size(name)
 }

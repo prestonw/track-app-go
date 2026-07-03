@@ -3,8 +3,6 @@ package ui
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/driver/desktop"
-	"fyne.io/fyne/v2/theme"
-
 	"github.com/prestonw/track-app-go/internal/app"
 )
 
@@ -37,5 +35,5 @@ func SetupSystray(fyneApp fyne.App, core *app.TrackApp, hud *HUD, mainWin *MainW
 		desk.SetSystemTrayMenu(menu)
 	}
 	setMenu()
-	desk.SetSystemTrayIcon(theme.ComputerIcon())
+	desk.SetSystemTrayIcon(AppIcon())
 }

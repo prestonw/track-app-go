@@ -35,8 +35,9 @@ type prefsData struct {
 	PrimaryTimerID string                 `json:"primaryTimerId"`
 	RecentTimerIDs []string               `json:"recentTimerIds"`
 	AutoStart      *models.AutoStartPrompt `json:"autoStartPrompt,omitempty"`
-	ShowHUDOnLaunch bool                  `json:"showHudOnLaunch"`
-	HUDCorner       int                   `json:"hudCorner"`
+	ShowHUDOnLaunch     bool `json:"showHudOnLaunch"`
+	HUDCorner           int  `json:"hudCorner"`
+	OnboardingComplete  bool `json:"onboardingComplete"`
 }
 
 func (c *Coordinator) loadPrefs() prefsData {
@@ -181,6 +182,20 @@ func (c *Coordinator) ShowHUDOnLaunch() bool {
 func (c *Coordinator) SetShowHUDOnLaunch(v bool) {
 	p := c.loadPrefs()
 	p.ShowHUDOnLaunch = v
+	c.savePrefs(p)
+}
+
+func (c *Coordinator) NeedsOnboarding() bool {
+	p := c.loadPrefs()
+	if p.OnboardingComplete {
+		return false
+	}
+	return len(c.store.Timers) == 0
+}
+
+func (c *Coordinator) SetOnboardingComplete(v bool) {
+	p := c.loadPrefs()
+	p.OnboardingComplete = v
 	c.savePrefs(p)
 }
 

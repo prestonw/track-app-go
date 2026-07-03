@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1B3A4B"/>
+      <stop offset="100%" stop-color="#0F2430"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F4F7FA"/>
+      <stop offset="100%" stop-color="#D9E2EC"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" rx="225" ry="225" fill="url(#bg)"/>
+
+  <!-- Crown -->
+  <rect x="462" y="168" width="100" height="56" rx="18" fill="#5BC0BE"/>
+
+  <!-- Stopwatch body -->
+  <circle cx="512" cy="560" r="300" fill="url(#face)" stroke="#8DA9C4" stroke-width="14"/>
+  <circle cx="512" cy="560" r="248" fill="none" stroke="#C5D4E3" stroke-width="8"/>
+
+  <!-- Tick marks -->
+  <g stroke="#5A7A94" stroke-width="14" stroke-linecap="round">
+    <line x1="512" y1="300" x2="512" y2="340"/>
+    <line x1="512" y1="780" x2="512" y2="820"/>
+    <line x1="252" y1="560" x2="292" y2="560"/>
+    <line x1="732" y1="560" x2="772" y2="560"/>
+  </g>
+
+  <!-- Hands -->
+  <g stroke="#1B3A4B" stroke-linecap="round">
+    <line x1="512" y1="560" x2="512" y2="420" stroke-width="22"/>
+    <line x1="512" y1="560" x2="620" y2="500" stroke-width="18"/>
+  </g>
+  <circle cx="512" cy="560" r="28" fill="#5BC0BE"/>
+
+  <!-- Accent arc (active timer) -->
+  <path d="M512 312 A248 248 0 0 1 700 430" fill="none" stroke="#5BC0BE" stroke-width="28" stroke-linecap="round"/>
+</svg>

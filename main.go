@@ -17,17 +17,22 @@ func main() {
 	defer core.Close()
 
 	fyneApp := fyneapp.NewWithID("com.prestonw.trackapp")
+	fyneApp.SetIcon(ui.AppIcon())
 	fyneApp.Settings().SetTheme(ui.TrackTheme())
 
 	hud := ui.NewHUD(core, fyneApp)
 	mainWin := ui.NewMainWindow(core, fyneApp, hud)
 
-	if core.Coordinator.ShowHUDOnLaunch() {
-		hud.Show()
-	}
-	mainWin.Show()
-
 	ui.SetupSystray(fyneApp, core, hud, mainWin)
+
+	if core.Coordinator.NeedsOnboarding() {
+		ui.ShowOnboardingIfNeeded(core, fyneApp, mainWin, hud)
+	} else {
+		if core.Coordinator.ShowHUDOnLaunch() {
+			hud.Show()
+		}
+		mainWin.Show()
+	}
 
 	fyneApp.Run()
 }

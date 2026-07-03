@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
@@ -35,6 +36,7 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 	h.window.SetFixedSize(true)
 	h.window.Resize(h.size)
 	h.window.SetTitle(platform.HUDWindowTitle)
+	h.window.SetIcon(AppIcon())
 	h.window.SetCloseIntercept(func() { h.Hide() })
 
 	h.clock = widget.NewLabel("00:00:00")
@@ -57,7 +59,12 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 	h.banner = container.NewHBox()
 
 	top := container.NewBorder(nil, nil, cornerBtn, reset, h.jobBtn)
-	h.body = container.NewVBox(h.banner, container.NewBorder(top, nil, nil, nil, center))
+	inner := container.NewVBox(h.banner, container.NewBorder(top, nil, nil, nil, center))
+	bg := canvas.NewRectangle(colorSurface)
+	bg.CornerRadius = cardRadius
+	bg.StrokeColor = colorAccent
+	bg.StrokeWidth = 1
+	h.body = container.NewStack(bg, container.NewPadded(inner))
 	h.window.SetContent(h.body)
 
 	a.OnChange(func() { h.refresh() })

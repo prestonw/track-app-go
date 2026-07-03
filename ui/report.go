@@ -97,27 +97,21 @@ func (m *MainWindow) buildReport() fyne.CanvasObject {
 	deleteBtn := widget.NewButton("Delete selected", func() { m.deleteSelectedSessions() })
 	deleteBtn.Importance = widget.DangerImportance
 
-	filters := widget.NewCard("Filters", "", container.NewVBox(
+	filters := fluidCardTitled("Filters", "Range, type, and export", container.NewVBox(
 		container.NewHBox(rangeSel, typeSel, clientSel, tagSel),
 		dateRow,
 		container.NewHBox(importBtn, exportCSV, exportDB, deleteBtn),
-	))
+	), cardDefault)
 
 	m.refreshReport()
 
-	return container.NewBorder(
-		container.NewVBox(
-			headingLabel("Report"),
-			widget.NewLabel("Job totals for the selected period, then individual sessions."),
-		),
-		nil, nil, nil,
-		container.NewVScroll(container.NewVBox(
-			widget.NewCard("By job timer", "", timerSummary),
-			filters,
-			headingLabel("Sessions"),
-			sessionsList,
-		)),
+	body := container.NewVBox(
+		fluidCardTitled("By job timer", "", timerSummary, cardAccent),
+		filters,
+		sectionLabel("SESSIONS"),
+		sessionsList,
 	)
+	return pageChrome("Report", "Job totals for the selected period, then individual sessions.", body)
 }
 
 func (m *MainWindow) refreshReport() {
@@ -332,7 +326,7 @@ func (m *MainWindow) updateReportSessionsList(sessions []models.Session) {
 			widget.NewLabel(earned),
 			container.NewHBox(check, del),
 		)
-		m.reportSessionsList.Add(widget.NewCard("", "", container.NewBorder(nil, nil, left, right, nil)))
+		m.reportSessionsList.Add(fluidCard(container.NewBorder(nil, nil, left, right, nil), cardDefault))
 	}
 }
 

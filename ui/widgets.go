@@ -6,9 +6,7 @@ import (
 )
 
 func headingLabel(text string) *widget.Label {
-	l := widget.NewLabel(text)
-	l.TextStyle = fyne.TextStyle{Bold: true}
-	return l
+	return pageTitle(text)
 }
 
 func monoLabel(text string) *widget.Label {

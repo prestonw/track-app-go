@@ -8,7 +8,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/prestonw/track-app-go/internal/app"
@@ -19,6 +18,7 @@ import (
 
 type MainWindow struct {
 	app      *app.TrackApp
+	fyneApp  fyne.App
 	hud      *HUD
 	window   fyne.Window
 	content  *fyne.Container
@@ -48,25 +48,36 @@ type MainWindow struct {
 
 func NewMainWindow(a *app.TrackApp, fyneApp fyne.App, hud *HUD) *MainWindow {
 	m := &MainWindow{
-		app: a, hud: hud,
+		app: a, fyneApp: fyneApp, hud: hud,
 		sections: []string{"Today", "Job Timers", "Clients", "Projects", "Activity", "Report", "Settings"},
 	}
 	m.window = fyneApp.NewWindow("Track App")
-	m.window.Resize(fyne.NewSize(1000, 700))
+	m.window.Resize(fyne.NewSize(1080, 720))
 	m.window.SetMaster()
+	m.window.SetIcon(AppIcon())
 
 	m.nav = widget.NewList(
 		func() int { return len(m.sections) },
-		func() fyne.CanvasObject { return widget.NewLabel("section") },
+		func() fyne.CanvasObject {
+			l := widget.NewLabel("")
+			return l
+		},
 		func(i widget.ListItemID, o fyne.CanvasObject) {
-			o.(*widget.Label).SetText(m.sections[i])
+			l := o.(*widget.Label)
+			l.SetText(navLabel(m.sections[i]))
+			if int(i) == currentSection {
+				l.TextStyle = fyne.TextStyle{Bold: true}
+			} else {
+				l.TextStyle = fyne.TextStyle{}
+			}
 		},
 	)
 	m.nav.OnSelected = func(id widget.ListItemID) { m.showSection(int(id)) }
 
 	m.content = container.NewMax()
-	body := container.NewBorder(nil, nil, container.NewGridWrap(fyne.NewSize(180, 36), m.nav), nil, m.content)
-	m.window.SetContent(body)
+	sidebar := container.NewGridWrap(fyne.NewSize(sidebarW, 40), m.nav)
+	shell := container.NewBorder(nil, nil, sidebarPanel(sidebar), nil, m.content)
+	m.window.SetContent(shell)
 
 	a.OnChange(func() { m.refreshCurrent() })
 	m.nav.Select(0)
@@ -106,28 +117,31 @@ func (m *MainWindow) buildToday() fyne.CanvasObject {
 	for _, r := range rows {
 		total += r.Seconds
 	}
-	header := monoLabel(format.HumanDuration(total))
-	sub := widget.NewLabel("Live summary for today")
+	totalCard := fluidCard(container.NewVBox(
+		sectionLabel("TOTAL TODAY"),
+		monoLabel(format.HumanDuration(total)),
+	), cardAccent)
+
 	cards := container.NewVBox()
 	if len(rows) == 0 {
-		cards.Add(widget.NewLabel("No time tracked yet today. Start a job from the floating timer."))
+		cards.Add(fluidCard(mutedLabel("No time tracked yet today. Start a job from the floating timer or add one under Job Timers."), cardDefault))
 	}
 	for _, r := range rows {
 		r := r
 		name := r.Name
+		style := cardDefault
 		if r.Running {
 			name = "● " + name
+			style = cardRunning
 		}
-		left := container.NewVBox(headingLabel(name), widget.NewLabel(r.Client))
-		right := widget.NewLabel(format.Duration(r.Seconds))
+		left := container.NewVBox(pageTitle(name), mutedLabel(r.Client))
+		right := monoLabel(format.Duration(r.Seconds))
 		row := container.NewBorder(nil, nil, nil, right, left)
 		btn := widget.NewButton("Switch to job", func() { m.app.Coordinator.SetFocus(r.TimerID, false) })
-		cards.Add(container.NewVBox(widget.NewCard("", "", row), btn))
+		cards.Add(container.NewVBox(fluidCard(row, style), btn))
 	}
-	return container.NewPadded(container.NewVBox(
-		headingLabel("Today"),
-		sub, header, widget.NewSeparator(), cards,
-	))
+	body := container.NewVBox(totalCard, widget.NewSeparator(), cards)
+	return pageChrome("Today", "Live summary for every job timer — filtered to today.", body)
 }
 
 func (m *MainWindow) buildTimers() fyne.CanvasObject {
@@ -147,7 +161,7 @@ func (m *MainWindow) buildTimers() fyne.CanvasObject {
 	if len(clientOpts) > 0 {
 		clientSel.SetSelected(clientOpts[0])
 	}
-	addBtn := widget.NewButton("Add job timer", func() {
+	addJob := func() {
 		r, _ := strconv.ParseFloat(rate.Text, 64)
 		tagList := splitTags(tags.Text)
 		cid := ""
@@ -163,16 +177,18 @@ func (m *MainWindow) buildTimers() fyne.CanvasObject {
 		name.SetText("")
 		tags.SetText("")
 		rate.SetText("")
-	})
-	form := widget.NewCard("Add job", "", container.NewVBox(name, tags, rate, clientSel, addBtn))
+	}
+	form := fluidCardTitled("Add job", "Create a timer for billable or focus work", container.NewVBox(name, tags, rate, clientSel, primaryButton("Add job timer", addJob)), cardDefault)
 
 	list := container.NewVBox()
 	for _, t := range m.app.Store.Timers {
 		t := t
 		elapsed := t.CurrentElapsed(models.NowMs())
 		title := t.Name
+		style := cardDefault
 		if t.Running {
 			title = "● " + title
+			style = cardRunning
 		}
 		meta := m.app.Store.ClientName(t.ClientID)
 		if len(t.Tags) > 0 {
@@ -189,27 +205,25 @@ func (m *MainWindow) buildTimers() fyne.CanvasObject {
 			widget.NewButton("Reset", func() { m.app.Manager.Reset(t.ID) }),
 			widget.NewButton("Delete", func() { m.app.Store.DeleteTimer(t.ID); m.app.Notify() }),
 		)
-		list.Add(widget.NewCard(title, meta, container.NewBorder(nil, nil, nil, timeLbl, actions)))
+		inner := container.NewBorder(nil, nil, nil, timeLbl, container.NewVBox(pageTitle(title), mutedLabel(meta), actions))
+		list.Add(fluidCard(inner, style))
 	}
-	scroll := container.NewVScroll(list)
-	return container.NewBorder(
-		headingLabel("Job Timers"), nil, nil, nil,
-		container.NewVBox(form, widget.NewSeparator(), scroll),
-	)
+	body := container.NewVBox(form, widget.NewSeparator(), list)
+	return pageChrome("Job Timers", "Manage jobs, rates, and clients. Start tracking from here or the floating timer.", body)
 }
 
 func (m *MainWindow) buildClients() fyne.CanvasObject {
 	name := widget.NewEntry()
 	name.SetPlaceHolder("Client or company name")
-	add := widget.NewButton("Add client", func() {
+	addClient := func() {
 		if _, err := m.app.Store.AddClient(name.Text); err != nil {
 			dialog.ShowError(err, m.window)
 			return
 		}
 		m.app.Notify()
 		name.SetText("")
-	})
-	form := widget.NewCard("Add client", "", container.NewHBox(name, add))
+	}
+	form := fluidCardTitled("Add client", "", container.NewHBox(name, primaryButton("Add client", addClient)), cardDefault)
 	list := container.NewVBox()
 	for _, c := range m.app.Store.Clients {
 		c := c
@@ -220,9 +234,10 @@ func (m *MainWindow) buildClients() fyne.CanvasObject {
 			}
 			m.app.Notify()
 		})
-		list.Add(widget.NewCard(c.Name, "", container.NewBorder(nil, nil, nil, del, layout.NewSpacer())))
+		list.Add(fluidCard(container.NewBorder(nil, nil, pageTitle(c.Name), del, nil), cardDefault))
 	}
-	return container.NewVBox(headingLabel("Clients"), form, container.NewVScroll(list))
+	body := container.NewVBox(form, widget.NewSeparator(), list)
+	return pageChrome("Clients", "Companies and contacts linked to job timers and projects.", body)
 }
 
 func (m *MainWindow) buildProjects() fyne.CanvasObject {
@@ -239,7 +254,7 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 	if len(timerOpts) > 0 {
 		timerSel.SetSelected(timerOpts[0])
 	}
-	addProj := widget.NewButton("Add project", func() {
+	addProject := func() {
 		cid, tid := "", ""
 		if i := indexOf(clientOpts, clientSel.Selected); i >= 0 {
 			cid = clientIDs[i]
@@ -250,8 +265,8 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 		m.app.Store.AddProject(name.Text, cid, tid, auto.Checked, "")
 		m.app.Notify()
 		name.SetText("")
-	})
-	left := widget.NewCard("Projects", m.app.Platform.Capabilities().ForegroundHint, container.NewVBox(name, clientSel, timerSel, auto, addProj))
+	}
+	left := fluidCardTitled("Projects", m.app.Platform.Capabilities().ForegroundHint, container.NewVBox(name, clientSel, timerSel, auto, primaryButton("Add project", addProject)), cardDefault)
 
 	projectList := widget.NewList(
 		func() int { return len(m.app.Store.Projects) },
@@ -306,12 +321,14 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 			))
 		}
 	}
-	right := widget.NewCard("Rules", "Select a project and add match rules", container.NewVBox(
+	right := fluidCardTitled("Rules", "Select a project and add match rules", container.NewVBox(
 		projectList, widget.NewSeparator(),
 		container.NewHBox(kindSel, pattern), capture, addRule,
 		container.NewVScroll(rulesList),
-	))
-	return container.NewHSplit(left, right)
+	), cardDefault)
+	split := container.NewHSplit(left, right)
+	split.SetOffset(0.42)
+	return pageChrome("Projects", "Group foreground apps into projects and link them to job timers.", split)
 }
 
 func (m *MainWindow) buildActivity() fyne.CanvasObject {
@@ -357,7 +374,9 @@ func (m *MainWindow) buildActivity() fyne.CanvasObject {
 		m.app.Store.AssignActivity(segs[selectedRow].ID, projIDs[idx])
 		m.app.Notify()
 	})
-	return container.NewBorder(header, container.NewHBox(projSel, assign), nil, nil, list)
+	toolbar := fluidCard(container.NewHBox(projSel, assign), cardDefault)
+	body := container.NewBorder(header, toolbar, nil, nil, list)
+	return pageChrome("Activity", "Ungrouped foreground time from the last 7 days — assign to projects.", body)
 }
 
 func (m *MainWindow) buildSettings() fyne.CanvasObject {
@@ -395,20 +414,21 @@ func (m *MainWindow) buildSettings() fyne.CanvasObject {
 		cap = m.app.Platform.RefreshCapabilities()
 		m.app.Notify()
 	})
-	platformCard := widget.NewCard("Platform", string(cap.OS)+" ("+cap.GoOS+")", container.NewVBox(
-		widget.NewLabel("Foreground tracking: "+fgStatus),
-		widget.NewLabel(cap.ForegroundHint),
-		widget.NewLabel("HUD corner snap: "+snapStatus),
-		widget.NewLabel(cap.WindowHint),
+	platformCard := fluidCardTitled("Platform", string(cap.OS)+" ("+cap.GoOS+")", container.NewVBox(
+		mutedLabel("Foreground tracking: "+fgStatus),
+		mutedLabel(cap.ForegroundHint),
+		mutedLabel("HUD corner snap: "+snapStatus),
+		mutedLabel(cap.WindowHint),
 		refreshPlat,
-	))
-
-	return container.NewVBox(
-		headingLabel("Settings"),
-		platformCard,
-		widget.NewCard("Floating timer", "", container.NewVBox(showHUD, container.NewHBox(showNow, hideNow))),
-		widget.NewCard("Display currency", "", currSel),
-	)
+	), cardDefault)
+	hudCard := fluidCardTitled("Floating timer", "Overlay timer for quick job switching", container.NewVBox(showHUD, container.NewHBox(showNow, hideNow)), cardDefault)
+	currCard := fluidCardTitled("Display currency", "", currSel, cardDefault)
+	replayOnboarding := widget.NewButton("Show onboarding again", func() {
+		m.app.Coordinator.SetOnboardingComplete(false)
+		ShowOnboardingIfNeeded(m.app, m.fyneApp, m, m.hud)
+	})
+	body := container.NewVBox(platformCard, hudCard, currCard, replayOnboarding)
+	return pageChrome("Settings", "App preferences and platform integration status.", body)
 }
 
 func (m *MainWindow) popupOpts(clients []models.Client, none string) ([]string, []string) {
