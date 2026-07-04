@@ -74,8 +74,7 @@ func NewMainWindow(a *app.TrackApp, fyneApp fyne.App, hud *HUD) *MainWindow {
 	navScroll.SetMinSize(fyne.NewSize(sidebarW, 420))
 	shell := container.NewBorder(nil, nil, sidebarPanel(navScroll), nil, m.content)
 
-	inner := container.NewInnerWindow("Track App", shell)
-	inner.Icon = AppIcon()
+	inner := container.NewInnerWindow("", shell)
 	inner.CloseIntercept = m.promptCloseOrTray
 	inner.OnMinimized = m.minimizeToTray
 	inner.SetPadded(false)
