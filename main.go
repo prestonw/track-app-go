@@ -22,11 +22,15 @@ func main() {
 
 	hud := ui.NewHUD(core, fyneApp)
 	mainWin := ui.NewMainWindow(core, fyneApp, hud)
+	hud.SetDialogParent(mainWin.Window())
 
 	fyneApp.Lifecycle().SetOnStarted(func() {
 		ui.SetupSystray(fyneApp, core, hud, mainWin)
 		if core.Coordinator.ShowHUDOnLaunch() {
 			hud.Show()
+		}
+		if !core.Coordinator.NeedsOnboarding() {
+			mainWin.Show()
 		}
 		ui.ShowAccessibilityPromptIfNeeded(core, hud.Window())
 		if core.Coordinator.NeedsOnboarding() {

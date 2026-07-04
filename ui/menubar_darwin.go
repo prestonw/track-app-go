@@ -2,41 +2,100 @@
 
 package ui
 
+/*
+#cgo CFLAGS: -x objective-c -fobjc-arc
+#cgo LDFLAGS: -framework Cocoa
+#include <stdlib.h>
+#include "menubar_darwin.h"
+*/
+import "C"
 import (
+	"unsafe"
+
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/driver/desktop"
 
 	"github.com/prestonw/track-app-go/internal/app"
 )
 
-// Native NSStatusBar conflicted with Fyne's lifecycle on Sonoma — use Fyne systray.
-func setupPlatformMenuBar(fyneApp fyne.App, core *app.TrackApp, hud *HUD, mainWin *MainWindow) {
-	desk, ok := fyneApp.(desktop.App)
-	if !ok {
+type menuBarState struct {
+	fyneApp fyne.App
+	core    *app.TrackApp
+	hud     *HUD
+	mainWin *MainWindow
+}
+
+var activeMenuBar *menuBarState
+
+//export trackapp_menu_open
+func trackapp_menu_open() {
+	if activeMenuBar != nil && activeMenuBar.mainWin != nil {
+		onMain(activeMenuBar.mainWin.Show)
+	}
+}
+
+//export trackapp_menu_today
+func trackapp_menu_today() {
+	if activeMenuBar != nil && activeMenuBar.mainWin != nil {
+		onMain(func() { activeMenuBar.mainWin.OpenSection("Today") })
+	}
+}
+
+//export trackapp_menu_jobs
+func trackapp_menu_jobs() {
+	if activeMenuBar != nil && activeMenuBar.mainWin != nil {
+		onMain(func() { activeMenuBar.mainWin.OpenSection("Job Timers") })
+	}
+}
+
+//export trackapp_menu_settings
+func trackapp_menu_settings() {
+	if activeMenuBar != nil && activeMenuBar.mainWin != nil {
+		onMain(func() { activeMenuBar.mainWin.OpenSection("Settings") })
+	}
+}
+
+//export trackapp_menu_toggle_hud
+func trackapp_menu_toggle_hud() {
+	if activeMenuBar == nil || activeMenuBar.hud == nil {
 		return
 	}
+	onMain(func() {
+		activeMenuBar.hud.Toggle()
+		refreshNativeMenuBar()
+	})
+}
 
-	var setMenu func()
-	setMenu = func() {
-		hudLabel := "Show Floating Timer"
-		if hud.Visible() {
-			hudLabel = "Hide Floating Timer"
-		}
-		menu := fyne.NewMenu("Track App",
-			fyne.NewMenuItem("Open Track App", func() { mainWin.Show() }),
-			fyne.NewMenuItem("Today", func() { mainWin.OpenSection("Today") }),
-			fyne.NewMenuItem("Job Timers", func() { mainWin.OpenSection("Job Timers") }),
-			fyne.NewMenuItem("Settings…", func() { mainWin.OpenSection("Settings") }),
-			fyne.NewMenuItem(hudLabel, func() {
-				hud.Toggle()
-				setMenu()
-			}),
-			fyne.NewMenuItemSeparator(),
-			fyne.NewMenuItem("Quit", func() { fyneApp.Quit() }),
-		)
-		desk.SetSystemTrayMenu(menu)
+//export trackapp_menu_quit
+func trackapp_menu_quit() {
+	if activeMenuBar != nil && activeMenuBar.fyneApp != nil {
+		onMain(activeMenuBar.fyneApp.Quit)
 	}
-	setMenu()
-	desk.SetSystemTrayIcon(AppIcon())
-	core.OnChange(func() { onMain(setMenu) })
+}
+
+func setupPlatformMenuBar(fyneApp fyne.App, core *app.TrackApp, hud *HUD, mainWin *MainWindow) {
+	activeMenuBar = &menuBarState{fyneApp: fyneApp, core: core, hud: hud, mainWin: mainWin}
+	C.trackapp_menubar_install()
+	icon := AppIcon().Content()
+	if len(icon) > 0 {
+		C.trackapp_menubar_set_icon((*C.uchar)(unsafe.Pointer(&icon[0])), C.int(len(icon)))
+	}
+	refreshNativeMenuBar()
+	core.OnChange(func() { onMain(refreshNativeMenuBar) })
+}
+
+func refreshNativeMenuBar() {
+	if activeMenuBar == nil || activeMenuBar.core == nil {
+		return
+	}
+	line := C.CString(activeMenuBar.core.Coordinator.StatusLine())
+	defer C.free(unsafe.Pointer(line))
+	C.trackapp_menubar_set_status(line)
+
+	hudLabel := "Show Floating Timer"
+	if activeMenuBar.hud != nil && activeMenuBar.hud.Visible() {
+		hudLabel = "Hide Floating Timer"
+	}
+	hl := C.CString(hudLabel)
+	defer C.free(unsafe.Pointer(hl))
+	C.trackapp_menubar_set_hud_label(hl)
 }

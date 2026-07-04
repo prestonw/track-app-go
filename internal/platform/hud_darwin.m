@@ -89,11 +89,31 @@ static NSInteger trackappFindWindowNumber(void) {
     return bestNumber;
 }
 
+static NSWindow *gHUDWindow = nil;
+
+static BOOL trackappWindowStillValid(NSWindow *win) {
+    if (win == nil) {
+        return NO;
+    }
+    for (NSWindow *candidate in [NSApp windows]) {
+        if (candidate == win) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
 static NSWindow *trackappFindHUDWindow(void) {
+    if (trackappWindowStillValid(gHUDWindow)) {
+        return gHUDWindow;
+    }
+    gHUDWindow = nil;
+
     NSInteger target = trackappFindWindowNumber();
     if (target >= 0) {
         for (NSWindow *win in [NSApp windows]) {
             if (win.windowNumber == target) {
+                gHUDWindow = win;
                 return win;
             }
         }
@@ -117,6 +137,7 @@ static NSWindow *trackappFindHUDWindow(void) {
             }
         }
     }
+    gHUDWindow = best;
     return best;
 }
 

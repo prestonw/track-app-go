@@ -18,16 +18,18 @@ import (
 )
 
 type HUD struct {
-	app      *app.TrackApp
-	window   fyne.Window
-	body     *fyne.Container
-	banner   *fyne.Container
-	clock    *hudClock
-	jobBtn   *widget.Button
-	play     *widget.Button
-	visible  bool
-	size     fyne.Size
-	baseSize fyne.Size
+	app            *app.TrackApp
+	window         fyne.Window
+	dialogParent   fyne.Window
+	body           *fyne.Container
+	banner         *fyne.Container
+	clock          *hudClock
+	jobBtn         *widget.Button
+	play           *widget.Button
+	visible        bool
+	size           fyne.Size
+	baseSize       fyne.Size
+	placementGen   int
 }
 
 func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
@@ -71,9 +73,12 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 	)
 
 	h.banner = container.NewHBox()
+	cornerBtn := widget.NewButton("◢", h.cycleCorner)
+	cornerBtn.Importance = widget.LowImportance
 	hint := mutedLabel("Tap empty space to move · " + BuildVersion())
+	hintRow := container.NewBorder(nil, nil, nil, cornerBtn, hint)
 
-	top := container.NewVBox(h.jobBtn, hint)
+	top := container.NewVBox(h.jobBtn, hintRow)
 	mid := newTapPad(h.cycleCorner)
 	inner := container.NewBorder(nil, clockRow, nil, nil, container.NewVBox(h.banner, top, mid))
 
@@ -90,6 +95,16 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 
 // Window returns the HUD Fyne window.
 func (h *HUD) Window() fyne.Window { return h.window }
+
+// SetDialogParent sets the window used for modal dialogs (main window is wider than the HUD).
+func (h *HUD) SetDialogParent(w fyne.Window) { h.dialogParent = w }
+
+func (h *HUD) dialogWindow() fyne.Window {
+	if h.dialogParent != nil {
+		return h.dialogParent
+	}
+	return h.window
+}
 
 func (h *HUD) Show() {
 	h.visible = true
@@ -124,16 +139,21 @@ func (h *HUD) placeHUD(animate bool) {
 	if !h.visible {
 		return
 	}
+	h.placementGen++
+	gen := h.placementGen
 	corner := platform.CornerFromInt(h.app.Coordinator.HUDCorner())
 	w, ht := int(h.size.Width), int(h.size.Height)
 	win := h.app.Platform.Window()
 	place := func() { win.PlaceHUD(corner, w, ht, animate) }
 	place()
+	if animate {
+		return
+	}
 	// Fyne splash windows center on first show — override after the toolkit settles.
 	go func() {
-		for _, d := range []time.Duration{50 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 1000 * time.Millisecond} {
+		for _, d := range []time.Duration{50 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond} {
 			time.Sleep(d)
-			if !h.visible {
+			if !h.visible || gen != h.placementGen {
 				return
 			}
 			onMain(place)
@@ -246,7 +266,7 @@ func (h *HUD) showQuickJobDialog() {
 	add := primaryButton("Add & start", func() {
 		n := strings.TrimSpace(name.Text)
 		if n == "" {
-			dialog.ShowInformation("New job", "Enter a job name", h.window)
+			dialog.ShowInformation("New job", "Enter a job name", h.dialogWindow())
 			return
 		}
 		t := h.app.Store.AddTimer(n, nil, 0, format.DisplayCurrency, "", "", 0)
@@ -259,7 +279,7 @@ func (h *HUD) showQuickJobDialog() {
 	})
 
 	body := container.NewVBox(hint, name, add)
-	dlg = dialog.NewCustom("New job", "Cancel", fluidCard(body, cardAccent), h.window)
+	dlg = dialog.NewCustom("New job", "Cancel", fluidCard(body, cardAccent), h.dialogWindow())
 	dlg.Show()
 }
 
@@ -303,7 +323,7 @@ func (h *HUD) showQuickProjectDialog() {
 	add := primaryButton("Add project", func() {
 		n := strings.TrimSpace(name.Text)
 		if n == "" {
-			dialog.ShowInformation("New project", "Enter a project name", h.window)
+			dialog.ShowInformation("New project", "Enter a project name", h.dialogWindow())
 			return
 		}
 		cid, tid := "", ""
@@ -330,6 +350,6 @@ func (h *HUD) showQuickProjectDialog() {
 		auto,
 		add,
 	)
-	dlg = dialog.NewCustom("Link to project", "Cancel", fluidCard(form, cardDefault), h.window)
+	dlg = dialog.NewCustom("Link to project", "Cancel", fluidCard(form, cardDefault), h.dialogWindow())
 	dlg.Show()
 }
