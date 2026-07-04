@@ -104,9 +104,9 @@ func refreshNativeMenuBar() {
 	defer C.free(unsafe.Pointer(line))
 	C.trackapp_menubar_set_status(line)
 
-	hudLabel := "Show Floating Timer"
+	hudLabel := "Show floating timer"
 	if activeMenuBar.hud != nil && activeMenuBar.hud.Visible() {
-		hudLabel = "Hide Floating Timer"
+		hudLabel = "Hide floating timer"
 	}
 	hl := C.CString(hudLabel)
 	defer C.free(unsafe.Pointer(hl))

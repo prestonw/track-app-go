@@ -32,8 +32,11 @@ func New() *Default {
 		ForegroundHint:    fg.TrustHint(),
 		WindowHint:        win.TrustHint(),
 	}
-	if cap.OS == OSDarwin || cap.OS == OSLinux || cap.OS == OSWindows {
+	switch cap.OS {
+	case OSLinux, OSWindows:
 		cap.SystemTray = true
+	case OSDarwin:
+		cap.SystemTray = false // menu bar only on macOS
 	}
 	return &Default{Cap: cap, foreground: fg, window: win}
 }

@@ -145,6 +145,8 @@ static void trackappApplyFrame(NSWindow *win, NSRect frame, int animate) {
     [win setLevel:NSFloatingWindowLevel];
     win.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary;
     win.hidesOnDeactivate = NO;
+    win.backgroundColor = [NSColor clearColor];
+    win.opaque = NO;
     if (animate) {
         [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
             context.duration = 0.15;

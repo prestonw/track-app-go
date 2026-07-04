@@ -121,7 +121,7 @@ func (m *MainWindow) buildReport() fyne.CanvasObject {
 	deleteBtn := widget.NewButton("Delete selected", func() { m.deleteSelectedSessions() })
 	deleteBtn.Importance = widget.DangerImportance
 	archiveBtn := widget.NewButton("Archive selected", func() { m.archiveSelectedSessions() })
-	selectAll := widget.NewCheck("Select all", func(on bool) {
+	selectAll := visibleCheck("Select all", false, func(on bool) {
 		if m.reportSelected == nil {
 			m.reportSelected = map[string]bool{}
 		}
@@ -354,9 +354,7 @@ func (m *MainWindow) updateReportSessionsList(sessions []models.Session) {
 			widget.NewLabel(fmt.Sprintf("%s · %s · %s", format.Date(sess.Start), typ, client)),
 			widget.NewLabel(tags),
 		)
-		check := widget.NewCheck("", nil)
-		check.SetChecked(m.reportSelected[sess.ID])
-		check.OnChanged = func(on bool) {
+		check := visibleCheck("", m.reportSelected != nil && m.reportSelected[sess.ID], func(on bool) {
 			if m.reportSelected == nil {
 				m.reportSelected = map[string]bool{}
 			}
@@ -365,7 +363,7 @@ func (m *MainWindow) updateReportSessionsList(sessions []models.Session) {
 			} else {
 				delete(m.reportSelected, sess.ID)
 			}
-		}
+		})
 		del := widget.NewButton("Delete", func() {
 			m.app.Store.DeleteSession(sess.ID)
 			delete(m.reportSelected, sess.ID)

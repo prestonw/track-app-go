@@ -37,7 +37,8 @@ type prefsData struct {
 	AutoStart      *models.AutoStartPrompt `json:"autoStartPrompt,omitempty"`
 	ShowHUDOnLaunch     *bool `json:"showHudOnLaunch,omitempty"`
 	HUDCorner           int  `json:"hudCorner"`
-	OnboardingComplete  bool `json:"onboardingComplete"`
+	HUDHintDismissed    bool  `json:"hudHintDismissed"`
+	OnboardingComplete  bool  `json:"onboardingComplete"`
 }
 
 func (c *Coordinator) loadPrefs() prefsData {
@@ -225,6 +226,16 @@ func (c *Coordinator) CycleHUDCorner() int {
 	p.HUDCorner = (p.HUDCorner + 1) % 4
 	c.savePrefs(p)
 	return p.HUDCorner
+}
+
+func (c *Coordinator) HUDHintDismissed() bool {
+	return c.loadPrefs().HUDHintDismissed
+}
+
+func (c *Coordinator) SetHUDHintDismissed(v bool) {
+	p := c.loadPrefs()
+	p.HUDHintDismissed = v
+	c.savePrefs(p)
 }
 
 func (c *Coordinator) AutoStartPrompt() *models.AutoStartPrompt {

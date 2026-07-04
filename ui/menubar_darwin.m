@@ -53,7 +53,7 @@ void trackapp_menubar_install(void) {
     trackappAddItem(menu, @"Today", @selector(openToday:), @"t");
     trackappAddItem(menu, @"Job Timers", @selector(openJobs:), @"j");
     trackappAddItem(menu, @"Settings…", @selector(openSettings:), @",");
-    gHUDItem = trackappAddItem(menu, @"Show Floating Timer", @selector(toggleHUD:), @"f");
+    gHUDItem = trackappAddItem(menu, @"Show floating timer", @selector(toggleHUD:), @"f");
     [menu addItem:[NSMenuItem separatorItem]];
     trackappAddItem(menu, @"Quit", @selector(quitApp:), @"q");
 

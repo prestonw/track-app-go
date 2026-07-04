@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 )
@@ -35,15 +36,14 @@ func (b bulkSet) clear() {
 }
 
 func bulkActionBar(allIDs []string, selected bulkSet, onChanged func(), deleteFn, archiveFn func([]string)) fyne.CanvasObject {
-	selectAll := widget.NewCheck("Select all", nil)
-	selectAll.OnChanged = func(on bool) {
+	selectAll := visibleCheck("Select all", false, func(on bool) {
 		for _, id := range allIDs {
 			selected.set(id, on)
 		}
 		if onChanged != nil {
 			onChanged()
 		}
-	}
+	})
 
 	del := widget.NewButton("Delete", func() {
 		ids := selected.ids()
@@ -73,14 +73,21 @@ func bulkActionBar(allIDs []string, selected bulkSet, onChanged func(), deleteFn
 	return fluidCard(container.NewHBox(selectAll, widget.NewLabel("·"), archive, del), cardDefault)
 }
 
-func rowCheckbox(id string, selected bulkSet, onChanged func()) *widget.Check {
-	chk := widget.NewCheck("", nil)
-	chk.SetChecked(selected.has(id))
-	chk.OnChanged = func(on bool) {
+func rowCheckbox(id string, selected bulkSet, onChanged func()) fyne.CanvasObject {
+	return visibleCheck("", selected.has(id), func(on bool) {
 		selected.set(id, on)
 		if onChanged != nil {
 			onChanged()
 		}
-	}
-	return chk
+	})
+}
+
+func visibleCheck(label string, checked bool, onChanged func(bool)) fyne.CanvasObject {
+	chk := widget.NewCheck(label, onChanged)
+	chk.SetChecked(checked)
+	bg := canvas.NewRectangle(colorCheckFill)
+	bg.CornerRadius = 5
+	bg.StrokeColor = colorCheckBorder
+	bg.StrokeWidth = 1.5
+	return container.NewStack(bg, container.NewPadded(chk))
 }

@@ -17,9 +17,9 @@ func setupPlatformMenuBar(fyneApp fyne.App, core *app.TrackApp, hud *HUD, mainWi
 
 	var setMenu func()
 	setMenu = func() {
-		hudLabel := "Show Floating Timer"
+		hudLabel := "Show floating timer"
 		if hud.Visible() {
-			hudLabel = "Hide Floating Timer"
+			hudLabel = "Hide floating timer"
 		}
 		menu := fyne.NewMenu("Track App",
 			fyne.NewMenuItem("Open Track App", func() { mainWin.Show() }),

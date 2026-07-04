@@ -58,7 +58,7 @@ func ShowOnboardingIfNeeded(core *app.TrackApp, fyneApp fyne.App, mainWin *MainW
 			icon.SetMinSize(fyne.NewSize(96, 96))
 			stepBody.Add(container.NewCenter(icon))
 			stepBody.Add(widget.NewLabel(""))
-			stepBody.Add(mutedLabel("Track App logs time per job with a lightweight floating timer."))
+			stepBody.Add(mutedLabel("Track App logs your time with a lightweight floating timer."))
 			stepBody.Add(mutedLabel("Switch jobs from the overlay or main window — your data stays in a local SQLite database."))
 		case 1:
 			stepTitle.SetText("Create your first job")

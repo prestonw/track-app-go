@@ -46,9 +46,11 @@ func (trackTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) col
 	case theme.ColorNameDisabled:
 		return colorTextDim
 	case theme.ColorNameInputBorder:
-		return colorBorder
+		return colorCheckBorder
 	case theme.ColorNameFocus:
 		return colorAccent
+	case theme.ColorNamePressed:
+		return colorCheckFill
 	}
 	return theme.DefaultTheme().Color(name, variant)
 }

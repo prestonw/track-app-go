@@ -18,22 +18,29 @@ import (
 )
 
 type HUD struct {
-	app            *app.TrackApp
-	window         fyne.Window
-	dialogParent   fyne.Window
-	body           *fyne.Container
-	banner         *fyne.Container
-	clock          *hudClock
-	jobBtn         *widget.Button
-	play           *widget.Button
-	visible        bool
-	size           fyne.Size
-	baseSize       fyne.Size
-	placementGen   int
+	app          *app.TrackApp
+	window       fyne.Window
+	dialogParent fyne.Window
+	body         *fyne.Container
+	banner       *fyne.Container
+	hintRow      *fyne.Container
+	clock        *hudClock
+	jobBtn       *widget.Button
+	play         *widget.Button
+	visible      bool
+	size         fyne.Size
+	compactSize  fyne.Size
+	hintSize     fyne.Size
+	placementGen int
 }
 
 func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
-	h := &HUD{app: a, baseSize: fyne.NewSize(236, 84), size: fyne.NewSize(236, 84)}
+	h := &HUD{
+		app:         a,
+		compactSize: fyne.NewSize(204, 54),
+		hintSize:    fyne.NewSize(204, 68),
+		size:        fyne.NewSize(204, 68),
+	}
 	if drv, ok := fyneApp.Driver().(desktop.Driver); ok {
 		h.window = drv.CreateSplashWindow()
 		h.window.SetPadded(false)
@@ -56,41 +63,61 @@ func NewHUD(a *app.TrackApp, fyneApp fyne.App) *HUD {
 	}
 
 	h.clock = newHUDClock(toggleTimer)
-
 	h.jobBtn = widget.NewButton("Select job ▾", func() { h.showJobMenu() })
 	h.jobBtn.Importance = widget.LowImportance
-
-	h.play = widget.NewButton("▶", toggleTimer)
-	h.play.Importance = widget.HighImportance
-	playBox := container.NewGridWrap(fyne.NewSize(hudTransportSize, hudTransportSize), h.play)
+	h.play = newHUDTransport(toggleTimer)
 
 	clockRow := container.NewHBox(
 		newTapPad(h.cycleCorner),
 		layout.NewSpacer(),
 		h.clock,
-		playBox,
+		container.NewGridWrap(fyne.NewSize(hudTransportSize, hudTransportSize), h.play),
 		newTapPad(h.cycleCorner),
 	)
 
 	h.banner = container.NewHBox()
 	cornerBtn := widget.NewButton("◢", h.cycleCorner)
 	cornerBtn.Importance = widget.LowImportance
-	hint := mutedLabel("Tap empty space to move · " + BuildVersion())
-	hintRow := container.NewBorder(nil, nil, nil, cornerBtn, hint)
+	hint := mutedLabel("Tap empty space to move")
+	h.hintRow = container.NewBorder(nil, nil, nil, cornerBtn, hint)
 
-	top := container.NewVBox(h.jobBtn, hintRow)
-	mid := newTapPad(h.cycleCorner)
-	inner := container.NewBorder(nil, clockRow, nil, nil, container.NewVBox(h.banner, top, mid))
+	top := container.NewVBox(h.jobBtn, h.hintRow)
+	inner := container.NewBorder(nil, clockRow, nil, nil, container.NewVBox(h.banner, top))
 
-	bg := canvas.NewRectangle(colorSurface)
-	bg.CornerRadius = cardRadius
-	bg.StrokeColor = colorAccent
+	bg := canvas.NewRectangle(colorHUDSurface)
+	bg.CornerRadius = 10
+	bg.StrokeColor = colorHUDBorder
 	bg.StrokeWidth = 1
-	h.body = container.NewStack(bg, container.NewPadded(inner))
+	padded := container.New(layout.NewCustomPaddedLayout(hudPad, hudPad, hudPad, hudPad), inner)
+	h.body = container.NewStack(bg, padded)
 	h.window.SetContent(h.body)
 
+	h.applyHintVisibility()
 	a.OnChange(func() { onMain(h.refresh) })
 	return h
+}
+
+func (h *HUD) applyHintVisibility() {
+	if h.app.Coordinator.HUDHintDismissed() {
+		h.hintRow.Hide()
+		h.size = h.compactSize
+	} else {
+		h.hintRow.Show()
+		h.size = h.hintSize
+	}
+	h.window.Resize(h.size)
+	h.body.Refresh()
+}
+
+func (h *HUD) dismissHint() {
+	if h.app.Coordinator.HUDHintDismissed() {
+		return
+	}
+	h.app.Coordinator.SetHUDHintDismissed(true)
+	h.applyHintVisibility()
+	if h.visible {
+		h.placeHUD(true)
+	}
 }
 
 // Window returns the HUD Fyne window.
@@ -141,6 +168,7 @@ func (h *HUD) Toggle() {
 
 func (h *HUD) cycleCorner() {
 	h.app.Coordinator.CycleHUDCorner()
+	h.dismissHint()
 	h.placeHUD(true)
 }
 
@@ -158,7 +186,6 @@ func (h *HUD) placeHUD(animate bool) {
 	if animate {
 		return
 	}
-	// Fyne splash windows center on first show — override after the toolkit settles.
 	go func() {
 		for _, d := range []time.Duration{50 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond} {
 			time.Sleep(d)
@@ -177,11 +204,7 @@ func (h *HUD) refresh() {
 	}
 	h.jobBtn.SetText(title + " ▾")
 	h.clock.SetTime(format.Duration(elapsed), running)
-	if running {
-		h.play.SetText("⏸")
-	} else {
-		h.play.SetText("▶")
-	}
+	setHUDTransport(h.play, running)
 	h.refreshBanner()
 }
 
@@ -190,7 +213,11 @@ func (h *HUD) refreshBanner() {
 	prompt := h.app.Coordinator.AutoStartPrompt()
 	if prompt == nil {
 		h.banner.Hide()
-		h.size = h.baseSize
+		base := h.compactSize
+		if !h.app.Coordinator.HUDHintDismissed() {
+			base = h.hintSize
+		}
+		h.size = base
 		h.window.Resize(h.size)
 		h.body.Refresh()
 		return
@@ -208,7 +235,10 @@ func (h *HUD) refreshBanner() {
 	h.banner.Add(start)
 	h.banner.Add(skip)
 	h.banner.Refresh()
-	h.size = fyne.NewSize(h.baseSize.Width, h.baseSize.Height+40)
+	h.size = fyne.NewSize(h.compactSize.Width, h.compactSize.Height+36)
+	if !h.app.Coordinator.HUDHintDismissed() {
+		h.size = fyne.NewSize(h.hintSize.Width, h.hintSize.Height+36)
+	}
 	h.window.Resize(h.size)
 	h.placeHUD(false)
 }
@@ -257,7 +287,7 @@ func (h *HUD) timerMenuItem(id string) *fyne.MenuItem {
 		}
 		label := t.Name
 		if t.Running {
-			label = "▶ " + label
+			label = "● " + label
 		}
 		return fyne.NewMenuItem(label, func() {
 			h.app.Coordinator.SetFocus(timerID, false)

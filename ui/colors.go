@@ -17,4 +17,8 @@ var (
 	colorRunning     = color.NRGBA{R: 72, G: 199, B: 142, A: 255}
 	colorRunningSoft = color.NRGBA{R: 72, G: 199, B: 142, A: 35}
 	colorDanger      = color.NRGBA{R: 235, G: 90, B: 90, A: 255}
+	colorHUDSurface  = color.NRGBA{R: 18, G: 26, B: 36, A: 200}
+	colorHUDBorder   = color.NRGBA{R: 91, G: 192, B: 190, A: 140}
+	colorCheckFill   = color.NRGBA{R: 91, G: 192, B: 190, A: 80}
+	colorCheckBorder = color.NRGBA{R: 91, G: 192, B: 190, A: 255}
 )

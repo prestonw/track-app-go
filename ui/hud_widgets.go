@@ -6,12 +6,14 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
 const (
-	hudClockSize     float32 = 26
-	hudTransportSize float32 = 36
+	hudClockSize     float32 = 22
+	hudTransportSize float32 = 32
+	hudPad           float32 = 6
 )
 
 // tapPad is an invisible expander that cycles HUD corners when clicked.
@@ -33,12 +35,12 @@ func (t *tapPad) Tapped(*fyne.PointEvent) {
 }
 
 func (t *tapPad) MinSize() fyne.Size {
-	return fyne.NewSize(20, 12)
+	return fyne.NewSize(14, 10)
 }
 
 func (t *tapPad) CreateRenderer() fyne.WidgetRenderer {
 	r := canvas.NewRectangle(color.Transparent)
-	r.SetMinSize(fyne.NewSize(20, 12))
+	r.SetMinSize(fyne.NewSize(14, 10))
 	return widget.NewSimpleRenderer(r)
 }
 
@@ -93,4 +95,19 @@ func (c *hudClock) MinSize() fyne.Size {
 		c.text.Text = "00:00:00"
 	}
 	return c.text.MinSize()
+}
+
+func newHUDTransport(onTap func()) *widget.Button {
+	btn := widget.NewButtonWithIcon("", theme.MediaPlayIcon(), onTap)
+	btn.Importance = widget.HighImportance
+	return btn
+}
+
+func setHUDTransport(btn *widget.Button, running bool) {
+	if running {
+		btn.SetIcon(theme.MediaPauseIcon())
+	} else {
+		btn.SetIcon(theme.MediaPlayIcon())
+	}
+	btn.SetText("")
 }

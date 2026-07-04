@@ -139,7 +139,7 @@ func (m *MainWindow) promptCloseOrTray() {
 			}),
 		),
 	)
-	dlg = dialog.NewCustom("Close Track App?", "Cancel", fluidCard(body, cardDefault), m.window)
+	dlg = dialog.NewCustomWithoutButtons("Close Track App?", fluidCard(body, cardDefault), m.window)
 	dlg.Show()
 }
 
@@ -651,8 +651,8 @@ func (m *MainWindow) buildSettings() fyne.CanvasObject {
 		ShowOnboardingIfNeeded(m.app, m.fyneApp, m, m.hud)
 	})
 	resetApp := widget.NewButton("Reset app data…", func() { m.confirmResetApp() })
-	dataCard := fluidCardTitled("Data", "Restore factory defaults for testing", container.NewVBox(
-		mutedLabel("Deletes all jobs, projects, sessions, activity, and preferences. Cannot be undone."),
+	dataCard := fluidCardTitled("Data", "Restore factory settings for testing", container.NewVBox(
+		mutedLabel("Deletes all jobs, projects, sessions, activity, and preferences. This cannot be undone."),
 		resetApp,
 		replayOnboarding,
 	), cardDefault)
@@ -688,7 +688,7 @@ func (m *MainWindow) confirmResetApp() {
 			if m.app.Coordinator.NeedsOnboarding() {
 				ShowOnboardingIfNeeded(m.app, m.fyneApp, m, m.hud)
 			}
-			dialog.ShowInformation("Reset complete", "App restored to factory defaults.", m.window)
+			dialog.ShowInformation("Reset complete", "App restored to factory settings.", m.window)
 		},
 		m.window,
 	)

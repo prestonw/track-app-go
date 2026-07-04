@@ -6,7 +6,7 @@ import (
 	"github.com/prestonw/track-app-go/internal/app"
 )
 
-// SetupSystray configures the menu bar / system tray for the current platform.
+// SetupSystray configures the menu bar (macOS) or system tray (other platforms).
 func SetupSystray(fyneApp fyne.App, core *app.TrackApp, hud *HUD, mainWin *MainWindow) {
 	setupPlatformMenuBar(fyneApp, core, hud, mainWin)
 }

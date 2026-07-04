@@ -124,11 +124,9 @@ func sidebarBrand() fyne.CanvasObject {
 	icon.SetMinSize(fyne.NewSize(44, 44))
 	title := widget.NewLabel("Track App")
 	title.TextStyle = fyne.TextStyle{Bold: true}
-	tag := mutedLabel("Time per job")
 	return container.NewPadded(container.NewVBox(
 		container.NewCenter(icon),
 		container.NewCenter(title),
-		container.NewCenter(tag),
 		widget.NewSeparator(),
 	))
 }
