@@ -188,8 +188,14 @@ func (m *MainWindow) showSection(i int) {
 }
 
 func (m *MainWindow) refreshCurrent() {
-	if m.sections[currentSection] == "Report" && m.reportTimerSummary != nil {
-		m.refreshReport()
+	switch m.sections[currentSection] {
+	case "Report":
+		if m.reportTimerSummary != nil {
+			m.refreshReport()
+		}
+		return
+	case "Settings", "Clients":
+		// Static pages — rebuilding every timer tick reset scroll position.
 		return
 	}
 	m.showSection(currentSection)
@@ -609,7 +615,7 @@ func (m *MainWindow) buildSettings() fyne.CanvasObject {
 	for _, c := range format.AllCurrencies(m.app.Store.CustomCurrencies) {
 		currOpts = append(currOpts, c.Code)
 	}
-	currSel := widget.NewSelect(currOpts, func(code string) { format.DisplayCurrency = code; m.app.Notify() })
+	currSel := widget.NewSelect(currOpts, func(code string) { format.DisplayCurrency = code })
 	currSel.SetSelected(format.DisplayCurrency)
 
 	cap := m.app.Platform.Capabilities()
@@ -629,8 +635,8 @@ func (m *MainWindow) buildSettings() fyne.CanvasObject {
 		snapStatus = "available"
 	}
 	refreshPlat := widget.NewButton("Refresh platform status", func() {
-		cap = m.app.Platform.RefreshCapabilities()
-		m.app.Notify()
+		m.app.Platform.RefreshCapabilities()
+		m.showSection(currentSection)
 	})
 	platformCard := fluidCardTitled("Platform", string(cap.OS)+" ("+cap.GoOS+")", container.NewVBox(
 		mutedLabel("Foreground tracking: "+fgStatus),

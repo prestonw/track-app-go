@@ -53,18 +53,18 @@ func statLabel(text string) *widget.RichText {
 	return rt
 }
 
-// pageChrome returns a titled page with subtitle and scrollable body.
+// pageChrome returns a scrollable page (header + body scroll together).
 func pageChrome(title, subtitle string, body fyne.CanvasObject) fyne.CanvasObject {
-	header := container.NewVBox(
-		pageTitle(title),
-		pageSubtitle(subtitle),
-		widget.NewSeparator(),
-	)
 	if body == nil {
 		body = widget.NewLabel("")
 	}
-	scroll := container.NewVScroll(body)
-	return container.NewBorder(header, nil, nil, nil, container.NewPadded(scroll))
+	page := container.NewVBox(
+		pageTitle(title),
+		pageSubtitle(subtitle),
+		widget.NewSeparator(),
+		container.NewPadded(body),
+	)
+	return container.NewVScroll(page)
 }
 
 func navButton(label string, selected bool, tapped func()) fyne.CanvasObject {
