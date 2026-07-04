@@ -342,14 +342,22 @@ func (m *MainWindow) buildClients() fyne.CanvasObject {
 	name := widget.NewEntry()
 	name.SetPlaceHolder("Client or company name")
 	addClient := func() {
-		if _, err := m.app.Store.AddClient(name.Text); err != nil {
+		n := strings.TrimSpace(name.Text)
+		if n == "" {
+			dialog.ShowInformation("Clients", "Enter a client name", m.window)
+			return
+		}
+		if _, err := m.app.Store.AddClient(n); err != nil {
 			dialog.ShowError(err, m.window)
 			return
 		}
 		m.app.Notify()
 		name.SetText("")
 	}
-	form := fluidCardTitled("Add client", "", container.NewHBox(name, primaryButton("Add client", addClient)), cardDefault)
+	form := fluidCardTitled("Add client", "", container.NewVBox(
+		widget.NewForm(widget.NewFormItem("Name", name)),
+		primaryButton("Add client", addClient),
+	), cardDefault)
 	list := container.NewVBox()
 	for _, c := range m.app.Store.Clients {
 		c := c
@@ -370,7 +378,7 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 	name := widget.NewEntry()
 	name.SetPlaceHolder("New project name")
 	auto := widget.NewCheck("Auto-track when rules match", nil)
-	clientOpts, clientIDs := m.popupOpts(m.app.Store.Clients, "(none)")
+	clientOpts, clientIDs := m.popupOpts(m.app.Store.Clients, "— No client —")
 	timerOpts, timerIDs := m.timerOpts()
 	clientSel := widget.NewSelect(clientOpts, nil)
 	timerSel := widget.NewSelect(timerOpts, nil)
@@ -381,6 +389,11 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 		timerSel.SetSelected(timerOpts[0])
 	}
 	addProject := func() {
+		n := strings.TrimSpace(name.Text)
+		if n == "" {
+			dialog.ShowInformation("Projects", "Enter a project name", m.window)
+			return
+		}
 		cid, tid := "", ""
 		if i := indexOf(clientOpts, clientSel.Selected); i >= 0 {
 			cid = clientIDs[i]
@@ -388,11 +401,10 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 		if i := indexOf(timerOpts, timerSel.Selected); i >= 0 {
 			tid = timerIDs[i]
 		}
-		m.app.Store.AddProject(name.Text, cid, tid, auto.Checked, "")
+		m.app.Store.AddProject(n, cid, tid, auto.Checked, "")
 		m.app.Notify()
 		name.SetText("")
 	}
-	left := fluidCardTitled("Projects", m.app.Platform.Capabilities().ForegroundHint, container.NewVBox(name, clientSel, timerSel, auto, primaryButton("Add project", addProject)), cardDefault)
 
 	projectList := widget.NewList(
 		func() int { return len(m.app.Store.Projects) },
@@ -402,12 +414,37 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 			o.(*widget.Label).SetText(p.Name)
 		},
 	)
+	projectList.SetMinSize(fyne.NewSize(280, 200))
 	projectList.OnSelected = func(id widget.ListItemID) {
 		m.selectedProject = int(id)
 		m.content.Objects = []fyne.CanvasObject{m.buildProjects()}
 		m.content.Refresh()
 	}
+	if m.selectedProject >= 0 && m.selectedProject < len(m.app.Store.Projects) {
+		projectList.Select(widget.ListItemID(m.selectedProject))
+	}
+
 	selected := m.selectedProject
+	rulesSubtitle := "Select a project to edit match rules"
+	if selected >= 0 && selected < len(m.app.Store.Projects) {
+		rulesSubtitle = m.app.Store.Projects[selected].Name
+	}
+
+	addForm := widget.NewForm(
+		widget.NewFormItem("Name", name),
+		widget.NewFormItem("Client", clientSel),
+		widget.NewFormItem("Job timer", timerSel),
+	)
+	leftInner := container.NewVBox(
+		projectList,
+		widget.NewSeparator(),
+		addForm,
+		auto,
+		primaryButton("Add project", addProject),
+	)
+	left := fluidCardTitled("Projects", "", leftInner, cardDefault)
+	leftWrap := container.NewBorder(nil, nil, nil, nil, left)
+	leftWrap.SetMinSize(fyne.NewSize(340, 420))
 
 	pattern := widget.NewEntry()
 	pattern.SetPlaceHolder("Match pattern")
@@ -440,7 +477,11 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 	})
 	rulesList := container.NewVBox()
 	if selected >= 0 && selected < len(m.app.Store.Projects) {
-		for _, r := range m.app.Store.RulesFor(m.app.Store.Projects[selected].ID) {
+		rules := m.app.Store.RulesFor(m.app.Store.Projects[selected].ID)
+		if len(rules) == 0 {
+			rulesList.Add(mutedLabel("No rules yet — add one below."))
+		}
+		for _, r := range rules {
 			r := r
 			rulesList.Add(container.NewHBox(
 				widget.NewLabel(string(r.Kind)+": "+r.Pattern),
@@ -448,13 +489,21 @@ func (m *MainWindow) buildProjects() fyne.CanvasObject {
 			))
 		}
 	}
-	right := fluidCardTitled("Rules", "Select a project and add match rules", container.NewVBox(
-		projectList, widget.NewSeparator(),
-		container.NewHBox(kindSel, pattern), capture, addRule,
+	rightInner := container.NewVBox(
+		widget.NewForm(
+			widget.NewFormItem("Match type", kindSel),
+			widget.NewFormItem("Pattern", pattern),
+		),
+		capture,
+		addRule,
 		container.NewVScroll(rulesList),
-	), cardDefault)
-	split := container.NewHSplit(left, right)
-	split.SetOffset(0.42)
+	)
+	right := fluidCardTitled("Match rules", rulesSubtitle, rightInner, cardDefault)
+	rightWrap := container.NewBorder(nil, nil, nil, nil, right)
+	rightWrap.SetMinSize(fyne.NewSize(340, 420))
+
+	split := container.NewHSplit(leftWrap, rightWrap)
+	split.SetOffset(0.48)
 	return pageChrome("Projects", "Group foreground apps into projects and link them to job timers.", split)
 }
 
@@ -545,7 +594,7 @@ func (m *MainWindow) showNewProjectDialog(onDone func(string)) {
 	name := widget.NewEntry()
 	name.SetPlaceHolder("Project name")
 	auto := widget.NewCheck("Auto-track when rules match", nil)
-	clientOpts, clientIDs := m.popupOpts(m.app.Store.Clients, "(none)")
+	clientOpts, clientIDs := m.popupOpts(m.app.Store.Clients, "— No client —")
 	timerOpts, timerIDs := m.timerOpts()
 	clientSel := widget.NewSelect(clientOpts, nil)
 	timerSel := widget.NewSelect(timerOpts, nil)
@@ -706,7 +755,7 @@ func (m *MainWindow) popupOpts(clients []models.Client, none string) ([]string, 
 }
 
 func (m *MainWindow) timerOpts() ([]string, []string) {
-	opts := []string{"(none)"}
+	opts := []string{"— No job —"}
 	ids := []string{""}
 	for _, t := range m.app.Store.Timers {
 		opts = append(opts, t.Name)
