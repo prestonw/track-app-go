@@ -41,12 +41,27 @@ func (m *MainWindow) buildReport() fyne.CanvasObject {
 	if m.reportToDate != "" {
 		dateTo.SetText(m.reportToDate)
 	}
-	dateFrom.OnChanged = func(s string) { m.reportFromDate = s; m.refreshReport() }
-	dateTo.OnChanged = func(s string) { m.reportToDate = s; m.refreshReport() }
+	dateFrom.OnChanged = func(s string) {
+		if m.reportRefreshing {
+			return
+		}
+		m.reportFromDate = s
+		m.refreshReport()
+	}
+	dateTo.OnChanged = func(s string) {
+		if m.reportRefreshing {
+			return
+		}
+		m.reportToDate = s
+		m.refreshReport()
+	}
 	dateRow := container.NewHBox(dateFrom, dateTo)
 	dateRow.Hide()
 
 	rangeSel := widget.NewSelect(rangeOpts, func(s string) {
+		if m.reportRefreshing {
+			return
+		}
 		m.reportRange = s
 		if s == string(models.RangeCustom) {
 			dateRow.Show()
@@ -61,18 +76,27 @@ func (m *MainWindow) buildReport() fyne.CanvasObject {
 	}
 
 	typeSel := widget.NewSelect(typeOpts, func(s string) {
+		if m.reportRefreshing {
+			return
+		}
 		m.reportType = s
 		m.refreshReport()
 	})
 	typeSel.SetSelected(m.reportType)
 
 	clientSel := widget.NewSelect([]string{"All clients"}, func(s string) {
+		if m.reportRefreshing {
+			return
+		}
 		m.reportClient = s
 		m.refreshReport()
 	})
 	clientSel.SetSelected("All clients")
 
 	tagSel := widget.NewSelect([]string{"All tags"}, func(s string) {
+		if m.reportRefreshing {
+			return
+		}
 		m.reportTag = s
 		m.refreshReport()
 	})
@@ -96,11 +120,25 @@ func (m *MainWindow) buildReport() fyne.CanvasObject {
 	exportDB := widget.NewButton("Export .sqlite", func() { m.exportReportDB() })
 	deleteBtn := widget.NewButton("Delete selected", func() { m.deleteSelectedSessions() })
 	deleteBtn.Importance = widget.DangerImportance
+	archiveBtn := widget.NewButton("Archive selected", func() { m.archiveSelectedSessions() })
+	selectAll := widget.NewCheck("Select all", func(on bool) {
+		if m.reportSelected == nil {
+			m.reportSelected = map[string]bool{}
+		}
+		for _, sess := range m.reportDisplayed {
+			if on {
+				m.reportSelected[sess.ID] = true
+			} else {
+				delete(m.reportSelected, sess.ID)
+			}
+		}
+		m.updateReportSessionsList(m.reportDisplayed)
+	})
 
 	filters := fluidCardTitled("Filters", "Range, type, and export", container.NewVBox(
 		container.NewHBox(rangeSel, typeSel, clientSel, tagSel),
 		dateRow,
-		container.NewHBox(importBtn, exportCSV, exportDB, deleteBtn),
+		container.NewHBox(importBtn, exportCSV, exportDB, selectAll, archiveBtn, deleteBtn),
 	), cardDefault)
 
 	m.refreshReport()
@@ -118,6 +156,12 @@ func (m *MainWindow) refreshReport() {
 	if m.reportTimerSummary == nil {
 		return
 	}
+	m.reportRefreshing = true
+	defer func() { m.reportRefreshing = false }()
+
+	if m.reportSelected == nil {
+		m.reportSelected = map[string]bool{}
+	}
 
 	r := models.ReportRange(m.reportRange)
 	var fromPtr, toPtr *time.Time
@@ -134,6 +178,9 @@ func (m *MainWindow) refreshReport() {
 
 	var sessions []models.Session
 	for _, sess := range m.app.Store.Sessions {
+		if sess.Archived {
+			continue
+		}
 		if sess.Start >= fromMs && sess.Start <= toMs {
 			sessions = append(sessions, sess)
 		}
@@ -201,11 +248,13 @@ func (m *MainWindow) updateReportFilterOptions(sessions []models.Session) {
 			cur = "All tags"
 		}
 		m.reportTagSel.Options = tagOpts
-		if indexOf(tagOpts, cur) >= 0 {
-			m.reportTagSel.SetSelected(cur)
-		} else {
-			m.reportTagSel.SetSelected("All tags")
-			m.reportTag = "All tags"
+		if m.reportTagSel.Selected != cur {
+			if indexOf(tagOpts, cur) >= 0 {
+				m.reportTagSel.SetSelected(cur)
+			} else {
+				m.reportTagSel.SetSelected("All tags")
+				m.reportTag = "All tags"
+			}
 		}
 	}
 	if m.reportClientSel != nil {
@@ -214,11 +263,13 @@ func (m *MainWindow) updateReportFilterOptions(sessions []models.Session) {
 			cur = "All clients"
 		}
 		m.reportClientSel.Options = clientOpts
-		if indexOf(clientOpts, cur) >= 0 {
-			m.reportClientSel.SetSelected(cur)
-		} else {
-			m.reportClientSel.SetSelected("All clients")
-			m.reportClient = "All clients"
+		if m.reportClientSel.Selected != cur {
+			if indexOf(clientOpts, cur) >= 0 {
+				m.reportClientSel.SetSelected(cur)
+			} else {
+				m.reportClientSel.SetSelected("All clients")
+				m.reportClient = "All clients"
+			}
 		}
 	}
 }
@@ -338,6 +389,20 @@ func (m *MainWindow) deleteSelectedSessions() {
 	for id := range m.reportSelected {
 		m.app.Store.DeleteSession(id)
 	}
+	m.reportSelected = map[string]bool{}
+	m.app.Notify()
+}
+
+func (m *MainWindow) archiveSelectedSessions() {
+	if len(m.reportSelected) == 0 {
+		dialog.ShowInformation("Report", "Select one or more sessions first", m.window)
+		return
+	}
+	ids := make([]string, 0, len(m.reportSelected))
+	for id := range m.reportSelected {
+		ids = append(ids, id)
+	}
+	m.app.Store.ArchiveSessions(ids)
 	m.reportSelected = map[string]bool{}
 	m.app.Notify()
 }

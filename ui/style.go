@@ -64,8 +64,22 @@ func pageChrome(title, subtitle string, body fyne.CanvasObject) fyne.CanvasObjec
 		body = widget.NewLabel("")
 	}
 	scroll := container.NewVScroll(body)
-	scroll.SetMinSize(fyne.NewSize(400, 300))
 	return container.NewBorder(header, nil, nil, nil, container.NewPadded(scroll))
+}
+
+func navButton(label string, selected bool, tapped func()) fyne.CanvasObject {
+	btn := widget.NewButton(label, tapped)
+	if selected {
+		btn.Importance = widget.HighImportance
+	} else {
+		btn.Importance = widget.LowImportance
+	}
+	bg := canvas.NewRectangle(colorAccentSoft)
+	bg.CornerRadius = 8
+	if !selected {
+		bg.Hide()
+	}
+	return container.NewStack(bg, btn)
 }
 
 func fluidCard(content fyne.CanvasObject, style cardStyle) fyne.CanvasObject {

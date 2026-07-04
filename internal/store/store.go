@@ -67,13 +67,13 @@ CREATE TABLE IF NOT EXISTS timers (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, tags TEXT DEFAULT '[]',
     rate REAL DEFAULT 0, currency TEXT DEFAULT 'GBP', notes TEXT DEFAULT '',
     elapsed INTEGER DEFAULT 0, running INTEGER DEFAULT 0,
-    started_at INTEGER, adjustments TEXT DEFAULT '[]', client_id TEXT DEFAULT ''
+    started_at INTEGER, adjustments TEXT DEFAULT '[]', client_id TEXT DEFAULT '', archived INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY, timer_id TEXT, name TEXT, tags TEXT DEFAULT '[]',
     rate REAL DEFAULT 0, currency TEXT DEFAULT 'GBP', notes TEXT DEFAULT '',
     start INTEGER, end_ts INTEGER, seconds INTEGER DEFAULT 0, manual INTEGER DEFAULT 0,
-    client TEXT DEFAULT ''
+    client TEXT DEFAULT '', archived INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS custom_currencies (code TEXT PRIMARY KEY, symbol TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS clients (id TEXT PRIMARY KEY, name TEXT NOT NULL);
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS project_rules (
 );
 CREATE TABLE IF NOT EXISTS activity_log (
     id TEXT PRIMARY KEY, started_at INTEGER NOT NULL, ended_at INTEGER,
-    app_name TEXT, bundle_id TEXT, window_title TEXT, document_path TEXT, project_id TEXT
+    app_name TEXT, bundle_id TEXT, window_title TEXT, document_path TEXT, project_id TEXT, archived INTEGER DEFAULT 0
 );
 `)
 	if err != nil {
@@ -96,6 +96,9 @@ CREATE TABLE IF NOT EXISTS activity_log (
 	_, _ = s.db.Exec("ALTER TABLE timers ADD COLUMN client_id TEXT DEFAULT ''")
 	_, _ = s.db.Exec("ALTER TABLE sessions ADD COLUMN client TEXT DEFAULT ''")
 	_, _ = s.db.Exec("ALTER TABLE projects ADD COLUMN skip_cooldown_until INTEGER")
+	_, _ = s.db.Exec("ALTER TABLE timers ADD COLUMN archived INTEGER DEFAULT 0")
+	_, _ = s.db.Exec("ALTER TABLE sessions ADD COLUMN archived INTEGER DEFAULT 0")
+	_, _ = s.db.Exec("ALTER TABLE activity_log ADD COLUMN archived INTEGER DEFAULT 0")
 	return nil
 }
 
@@ -173,17 +176,17 @@ func (s *Store) SaveAll() error {
 		if t.StartedAt != nil {
 			started = itoa64(*t.StartedAt)
 		}
-		_, err := tx.Exec(`INSERT INTO timers VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+		_, err := tx.Exec(`INSERT INTO timers VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
 			t.ID, t.Name, encode(t.Tags), t.Rate, t.Currency, t.Notes,
-			t.Elapsed, bool01(t.Running), started, encode(t.Adjustments), t.ClientID)
+			t.Elapsed, bool01(t.Running), started, encode(t.Adjustments), t.ClientID, bool01(t.Archived))
 		if err != nil {
 			return err
 		}
 	}
 	for _, sess := range s.Sessions {
-		_, err := tx.Exec(`INSERT INTO sessions VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+		_, err := tx.Exec(`INSERT INTO sessions VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			sess.ID, sess.TimerID, sess.Name, encode(sess.Tags), sess.Rate, sess.Currency, sess.Notes,
-			sess.Start, sess.End, sess.Seconds, bool01(sess.Manual), sess.Client)
+			sess.Start, sess.End, sess.Seconds, bool01(sess.Manual), sess.Client, bool01(sess.Archived))
 		if err != nil {
 			return err
 		}
@@ -331,6 +334,30 @@ func (s *Store) DeleteTimer(id string) {
 	_ = s.SaveAll()
 }
 
+func (s *Store) ArchiveTimer(id string) {
+	for i := range s.Timers {
+		if s.Timers[i].ID == id {
+			s.Timers[i].Archived = true
+			if s.Timers[i].Running {
+				s.Timers[i].Running = false
+				s.Timers[i].StartedAt = nil
+			}
+			break
+		}
+	}
+	_ = s.SaveAll()
+}
+
+func (s *Store) ActiveTimers() []models.JobTimer {
+	var out []models.JobTimer
+	for _, t := range s.Timers {
+		if !t.Archived {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 func (s *Store) DeleteSession(id string) {
 	for i, sess := range s.Sessions {
 		if sess.ID != id {
@@ -345,6 +372,28 @@ func (s *Store) DeleteSession(id string) {
 		break
 	}
 	_ = s.SaveAll()
+}
+
+func (s *Store) ArchiveSession(id string) {
+	for i := range s.Sessions {
+		if s.Sessions[i].ID == id {
+			s.Sessions[i].Archived = true
+			break
+		}
+	}
+	_ = s.SaveAll()
+}
+
+func (s *Store) DeleteSessions(ids []string) {
+	for _, id := range ids {
+		s.DeleteSession(id)
+	}
+}
+
+func (s *Store) ArchiveSessions(ids []string) {
+	for _, id := range ids {
+		s.ArchiveSession(id)
+	}
 }
 
 func (s *Store) AddProject(name, clientID, timerID string, autoTrack bool, notes string) models.Project {
@@ -459,7 +508,7 @@ func (s *Store) UngroupedActivity(days int) []models.ActivitySegment {
 	cutoff := models.NowMs() - int64(days*86400000)
 	var out []models.ActivitySegment
 	for _, seg := range s.ActivityLog {
-		if seg.ProjectID != "" {
+		if seg.Archived || seg.ProjectID != "" {
 			continue
 		}
 		if seg.StartedAt >= cutoff {
@@ -467,6 +516,38 @@ func (s *Store) UngroupedActivity(days int) []models.ActivitySegment {
 		}
 	}
 	return out
+}
+
+func (s *Store) DeleteActivity(id string) {
+	for i := range s.ActivityLog {
+		if s.ActivityLog[i].ID == id {
+			s.ActivityLog = append(s.ActivityLog[:i], s.ActivityLog[i+1:]...)
+			_, _ = s.db.Exec(`DELETE FROM activity_log WHERE id=?`, id)
+			break
+		}
+	}
+}
+
+func (s *Store) ArchiveActivity(id string) {
+	for i := range s.ActivityLog {
+		if s.ActivityLog[i].ID == id {
+			s.ActivityLog[i].Archived = true
+			_, _ = s.db.Exec(`UPDATE activity_log SET archived=1 WHERE id=?`, id)
+			break
+		}
+	}
+}
+
+func (s *Store) DeleteActivities(ids []string) {
+	for _, id := range ids {
+		s.DeleteActivity(id)
+	}
+}
+
+func (s *Store) ArchiveActivities(ids []string) {
+	for _, id := range ids {
+		s.ArchiveActivity(id)
+	}
 }
 
 func (s *Store) AssignActivity(id, projectID string) {
@@ -497,7 +578,7 @@ func (s *Store) makeManualSession(t models.JobTimer, seconds int) models.Session
 // fetch helpers
 
 func (s *Store) fetchTimers() ([]models.JobTimer, error) {
-	rows, err := s.db.Query(`SELECT id,name,tags,rate,currency,notes,elapsed,running,started_at,adjustments,client_id FROM timers ORDER BY rowid`)
+	rows, err := s.db.Query(`SELECT id,name,tags,rate,currency,notes,elapsed,running,started_at,adjustments,client_id,COALESCE(archived,0) FROM timers ORDER BY rowid`)
 	if err != nil {
 		return nil, err
 	}
@@ -505,13 +586,14 @@ func (s *Store) fetchTimers() ([]models.JobTimer, error) {
 	var out []models.JobTimer
 	for rows.Next() {
 		var t models.JobTimer
-		var tags, adjs, started, running string
-		if err := rows.Scan(&t.ID, &t.Name, &tags, &t.Rate, &t.Currency, &t.Notes, &t.Elapsed, &running, &started, &adjs, &t.ClientID); err != nil {
+		var tags, adjs, started, running, archived string
+		if err := rows.Scan(&t.ID, &t.Name, &tags, &t.Rate, &t.Currency, &t.Notes, &t.Elapsed, &running, &started, &adjs, &t.ClientID, &archived); err != nil {
 			return nil, err
 		}
 		decode(tags, &t.Tags)
 		decode(adjs, &t.Adjustments)
 		t.Running = running == "1"
+		t.Archived = archived == "1"
 		if started != "" {
 			v := parseInt64(started)
 			t.StartedAt = &v
@@ -525,7 +607,7 @@ func (s *Store) fetchTimers() ([]models.JobTimer, error) {
 }
 
 func (s *Store) fetchSessions() ([]models.Session, error) {
-	rows, err := s.db.Query(`SELECT id,timer_id,name,tags,rate,currency,notes,start,end_ts,seconds,manual,client FROM sessions ORDER BY start DESC`)
+	rows, err := s.db.Query(`SELECT id,timer_id,name,tags,rate,currency,notes,start,end_ts,seconds,manual,client,COALESCE(archived,0) FROM sessions ORDER BY start DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -533,13 +615,14 @@ func (s *Store) fetchSessions() ([]models.Session, error) {
 	var out []models.Session
 	for rows.Next() {
 		var sess models.Session
-		var tags, manual string
+		var tags, manual, archived string
 		if err := rows.Scan(&sess.ID, &sess.TimerID, &sess.Name, &tags, &sess.Rate, &sess.Currency, &sess.Notes,
-			&sess.Start, &sess.End, &sess.Seconds, &manual, &sess.Client); err != nil {
+			&sess.Start, &sess.End, &sess.Seconds, &manual, &sess.Client, &archived); err != nil {
 			return nil, err
 		}
 		decode(tags, &sess.Tags)
 		sess.Manual = manual == "1"
+		sess.Archived = archived == "1"
 		out = append(out, sess)
 	}
 	return out, rows.Err()
@@ -622,7 +705,7 @@ func (s *Store) fetchRules() ([]models.ProjectRule, error) {
 }
 
 func (s *Store) fetchActivity() ([]models.ActivitySegment, error) {
-	rows, err := s.db.Query(`SELECT id,started_at,ended_at,app_name,bundle_id,window_title,document_path,project_id FROM activity_log ORDER BY started_at DESC LIMIT 500`)
+	rows, err := s.db.Query(`SELECT id,started_at,ended_at,app_name,bundle_id,window_title,document_path,project_id,COALESCE(archived,0) FROM activity_log ORDER BY started_at DESC LIMIT 500`)
 	if err != nil {
 		return nil, err
 	}
@@ -630,8 +713,8 @@ func (s *Store) fetchActivity() ([]models.ActivitySegment, error) {
 	var out []models.ActivitySegment
 	for rows.Next() {
 		var seg models.ActivitySegment
-		var ended, proj sql.NullString
-		if err := rows.Scan(&seg.ID, &seg.StartedAt, &ended, &seg.AppName, &seg.BundleID, &seg.WindowTitle, &seg.DocumentPath, &proj); err != nil {
+		var ended, proj, archived sql.NullString
+		if err := rows.Scan(&seg.ID, &seg.StartedAt, &ended, &seg.AppName, &seg.BundleID, &seg.WindowTitle, &seg.DocumentPath, &proj, &archived); err != nil {
 			return nil, err
 		}
 		if ended.Valid && ended.String != "" {
@@ -641,6 +724,7 @@ func (s *Store) fetchActivity() ([]models.ActivitySegment, error) {
 		if proj.Valid {
 			seg.ProjectID = proj.String
 		}
+		seg.Archived = archived.Valid && archived.String == "1"
 		out = append(out, seg)
 	}
 	return out, rows.Err()

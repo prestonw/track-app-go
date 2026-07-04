@@ -41,6 +41,7 @@ type JobTimer struct {
 	StartedAt   *int64       `json:"startedAt,omitempty"`
 	Adjustments []Adjustment `json:"adjustments"`
 	ClientID    string       `json:"clientId"`
+	Archived    bool         `json:"archived,omitempty"`
 }
 
 func (t JobTimer) CurrentElapsed(nowMs int64) int {
@@ -67,6 +68,7 @@ type Session struct {
 	Seconds  int      `json:"seconds"`
 	Manual   bool     `json:"manual"`
 	Client   string   `json:"client"`
+	Archived bool     `json:"archived,omitempty"`
 }
 
 type CustomCurrency struct {
@@ -120,6 +122,7 @@ type ActivitySegment struct {
 	WindowTitle  string `json:"windowTitle"`
 	DocumentPath string `json:"documentPath"`
 	ProjectID    string `json:"projectId,omitempty"`
+	Archived     bool   `json:"archived,omitempty"`
 }
 
 func (s ActivitySegment) IsOpen() bool { return s.EndedAt == nil }

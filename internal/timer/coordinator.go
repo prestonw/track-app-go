@@ -275,11 +275,17 @@ func (c *Coordinator) TodayRows() []TodayRow {
 	now := models.NowMs()
 	byTimer := map[string]int{}
 	for _, sess := range c.store.Sessions {
+		if sess.Archived {
+			continue
+		}
 		if sess.Start >= fromMs && sess.Start <= toMs {
 			byTimer[sess.TimerID] += sess.Seconds
 		}
 	}
 	for _, t := range c.store.Timers {
+		if t.Archived {
+			continue
+		}
 		if t.Running && t.StartedAt != nil && *t.StartedAt <= toMs {
 			liveStart := max64(*t.StartedAt, fromMs)
 			end := min64(toMs, now)
@@ -292,7 +298,7 @@ func (c *Coordinator) TodayRows() []TodayRow {
 	var rows []TodayRow
 	for id, sec := range byTimer {
 		for _, t := range c.store.Timers {
-			if t.ID == id {
+			if t.ID == id && !t.Archived {
 				rows = append(rows, TodayRow{
 					TimerID: id, Name: t.Name, Client: c.store.ClientName(t.ClientID),
 					Seconds: sec, Running: t.Running, Rate: t.Rate, Currency: t.Currency,

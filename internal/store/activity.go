@@ -51,8 +51,8 @@ func (s *Store) CloseOpenActivitySegment() {
 }
 
 func (s *Store) persistActivitySegment(seg models.ActivitySegment) {
-	_, _ = s.db.Exec(`INSERT INTO activity_log VALUES (?,?,?,?,?,?,?,?)`,
-		seg.ID, seg.StartedAt, "", seg.AppName, seg.BundleID, seg.WindowTitle, seg.DocumentPath, seg.ProjectID)
+	_, _ = s.db.Exec(`INSERT INTO activity_log VALUES (?,?,?,?,?,?,?,?,?)`,
+		seg.ID, seg.StartedAt, "", seg.AppName, seg.BundleID, seg.WindowTitle, seg.DocumentPath, seg.ProjectID, 0)
 }
 
 func (s *Store) updateActivitySegment(seg models.ActivitySegment) {
