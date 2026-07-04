@@ -10,6 +10,7 @@ package ui
 */
 import "C"
 import (
+	"time"
 	"unsafe"
 
 	"fyne.io/fyne/v2"
@@ -74,13 +75,25 @@ func trackapp_menu_quit() {
 
 func setupPlatformMenuBar(fyneApp fyne.App, core *app.TrackApp, hud *HUD, mainWin *MainWindow) {
 	activeMenuBar = &menuBarState{fyneApp: fyneApp, core: core, hud: hud, mainWin: mainWin}
+	installNativeMenuBar()
+	// Fyne may not have finished wiring NSApplication on the first tick — retry once.
+	go func() {
+		time.Sleep(400 * time.Millisecond)
+		onMain(installNativeMenuBar)
+	}()
+	core.OnChange(func() { onMain(refreshNativeMenuBar) })
+}
+
+func installNativeMenuBar() {
+	if activeMenuBar == nil {
+		return
+	}
 	C.trackapp_menubar_install()
 	icon := AppIcon().Content()
 	if len(icon) > 0 {
 		C.trackapp_menubar_set_icon((*C.uchar)(unsafe.Pointer(&icon[0])), C.int(len(icon)))
 	}
 	refreshNativeMenuBar()
-	core.OnChange(func() { onMain(refreshNativeMenuBar) })
 }
 
 func refreshNativeMenuBar() {

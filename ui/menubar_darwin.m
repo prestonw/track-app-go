@@ -39,8 +39,9 @@ void trackapp_menubar_install(void) {
     // Do not call setActivationPolicy — NSApplicationActivationPolicyAccessory
     // conflicts with Fyne on Sonoma and caused launch crashes.
     gTarget = [[TrackAppMenuTarget alloc] init];
-    gStatusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
+    gStatusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSSquareStatusItemLength];
     gStatusItem.button.toolTip = @"Track App";
+    gStatusItem.button.appearsDisabled = NO;
 
     NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Track App"];
     gStatusLineItem = [[NSMenuItem alloc] initWithTitle:@"Track App" action:nil keyEquivalent:@""];
@@ -60,18 +61,41 @@ void trackapp_menubar_install(void) {
 }
 
 void trackapp_menubar_set_icon(const unsigned char *data, int len) {
-    if (!gStatusItem || !data || len <= 0) {
+    if (!gStatusItem) {
+        trackapp_menubar_install();
+    }
+    if (!gStatusItem) {
         return;
     }
-    NSData *blob = [NSData dataWithBytes:data length:(NSUInteger)len];
-    NSImage *img = [[NSImage alloc] initWithData:blob];
-    if (!img) {
-        return;
+
+    NSImage *img = nil;
+    if (@available(macOS 11.0, *)) {
+        img = [NSImage imageWithSystemSymbolName:@"stopwatch.fill" accessibilityDescription:@"Track App"];
+        if (img) {
+            NSImageSymbolConfiguration *cfg =
+                [NSImageSymbolConfiguration configurationWithPointSize:14 weight:NSFontWeightSemibold];
+            img = [img imageWithSymbolConfiguration:cfg];
+        }
     }
-    img.template = YES;
-    img.size = NSMakeSize(18, 18);
-    gStatusItem.button.image = img;
-    gStatusItem.button.imagePosition = NSImageOnly;
+
+    if (!img && data && len > 0) {
+        NSData *blob = [NSData dataWithBytes:data length:(NSUInteger)len];
+        img = [[NSImage alloc] initWithData:blob];
+        if (img) {
+            img.template = NO;
+            img.size = NSMakeSize(18, 18);
+        }
+    }
+
+    if (img) {
+        gStatusItem.button.image = img;
+        gStatusItem.button.imagePosition = NSImageOnly;
+        gStatusItem.button.title = @"";
+    } else {
+        gStatusItem.button.image = nil;
+        gStatusItem.button.title = @"\u23F1";
+        gStatusItem.button.imagePosition = NSImageLeft;
+    }
 }
 
 void trackapp_menubar_set_status(const char *text) {

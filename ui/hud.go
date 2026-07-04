@@ -106,6 +106,15 @@ func (h *HUD) dialogWindow() fyne.Window {
 	return h.window
 }
 
+func (h *HUD) prepareDialog() fyne.Window {
+	parent := h.dialogWindow()
+	if parent != nil && parent != h.window {
+		parent.Show()
+		parent.RequestFocus()
+	}
+	return parent
+}
+
 func (h *HUD) Show() {
 	h.visible = true
 	h.window.Show()
@@ -258,6 +267,7 @@ func (h *HUD) timerMenuItem(id string) *fyne.MenuItem {
 }
 
 func (h *HUD) showQuickJobDialog() {
+	parent := h.prepareDialog()
 	name := widget.NewEntry()
 	name.SetPlaceHolder("e.g. Client website")
 	hint := mutedLabel("Name your job — tracking starts right away.")
@@ -279,11 +289,12 @@ func (h *HUD) showQuickJobDialog() {
 	})
 
 	body := container.NewVBox(hint, name, add)
-	dlg = dialog.NewCustom("New job", "Cancel", fluidCard(body, cardAccent), h.dialogWindow())
+	dlg = dialog.NewCustom("New job", "Cancel", fluidCard(body, cardAccent), parent)
 	dlg.Show()
 }
 
 func (h *HUD) showQuickProjectDialog() {
+	parent := h.prepareDialog()
 	name := widget.NewEntry()
 	name.SetPlaceHolder("Project name")
 	auto := widget.NewCheck("Auto-track when rules match", nil)
@@ -350,6 +361,6 @@ func (h *HUD) showQuickProjectDialog() {
 		auto,
 		add,
 	)
-	dlg = dialog.NewCustom("Link to project", "Cancel", fluidCard(form, cardDefault), h.dialogWindow())
+	dlg = dialog.NewCustom("Link to project", "Cancel", fluidCard(form, cardDefault), parent)
 	dlg.Show()
 }

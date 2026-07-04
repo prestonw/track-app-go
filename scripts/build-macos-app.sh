@@ -38,5 +38,16 @@ if [[ -f "$ICON_SRC" ]]; then
   fi
 fi
 
+chmod +x "$ROOT/scripts/run-macos-app.sh"
+
+echo ""
 echo "Built $BUNDLE (version $VERSION)"
-echo "Open with: open \"$BUNDLE\""
+echo ""
+echo "IMPORTANT: Quit the old app before launching the new build."
+echo "  ./scripts/run-macos-app.sh"
+echo ""
+echo "Or manually:"
+echo "  killall trackapp"
+echo "  open \"$BUNDLE\""
+echo ""
+echo "Check the HUD hint shows: Tap empty space to move · $VERSION"
