@@ -318,8 +318,13 @@ func (h *HUD) showQuickJobDialog() {
 		}
 	})
 
-	body := container.NewVBox(hint, name, add)
-	dlg = dialog.NewCustom("New job", "Cancel", fluidCard(body, cardAccent), parent)
+	cancel := widget.NewButton("Cancel", func() {
+		if dlg != nil {
+			dlg.Hide()
+		}
+	})
+	body := container.NewVBox(hint, name, container.NewHBox(cancel, add))
+	dlg = dialog.NewCustomWithoutButtons("New job", fluidCard(body, cardAccent), parent)
 	dlg.Show()
 }
 
@@ -381,6 +386,11 @@ func (h *HUD) showQuickProjectDialog() {
 		}
 	})
 
+	cancel := widget.NewButton("Cancel", func() {
+		if dlg != nil {
+			dlg.Hide()
+		}
+	})
 	form := container.NewVBox(
 		hint,
 		widget.NewForm(
@@ -389,8 +399,8 @@ func (h *HUD) showQuickProjectDialog() {
 			widget.NewFormItem("Client", clientSel),
 		),
 		auto,
-		add,
+		container.NewHBox(cancel, add),
 	)
-	dlg = dialog.NewCustom("Link to project", "Cancel", fluidCard(form, cardDefault), parent)
+	dlg = dialog.NewCustomWithoutButtons("Link to project", fluidCard(form, cardDefault), parent)
 	dlg.Show()
 }

@@ -74,11 +74,7 @@ func NewMainWindow(a *app.TrackApp, fyneApp fyne.App, hud *HUD) *MainWindow {
 	navScroll.SetMinSize(fyne.NewSize(sidebarW, 420))
 	shell := container.NewBorder(nil, nil, sidebarPanel(navScroll), nil, m.content)
 
-	inner := container.NewInnerWindow("", shell)
-	inner.CloseIntercept = m.promptCloseOrTray
-	inner.OnMinimized = m.minimizeToTray
-	inner.SetPadded(false)
-	m.window.SetContent(inner)
+	m.window.SetContent(windowChrome(shell, m.promptCloseOrTray, m.minimizeToTray))
 	m.window.SetCloseIntercept(m.promptCloseOrTray)
 
 	a.OnChange(func() { onMain(m.refreshCurrent) })
@@ -582,6 +578,11 @@ func (m *MainWindow) showNewProjectDialog(onDone func(string)) {
 			onDone(p.ID)
 		}
 	})
+	cancel := widget.NewButton("Cancel", func() {
+		if dlg != nil {
+			dlg.Hide()
+		}
+	})
 	form := container.NewVBox(
 		widget.NewForm(
 			widget.NewFormItem("Name", name),
@@ -589,9 +590,9 @@ func (m *MainWindow) showNewProjectDialog(onDone func(string)) {
 			widget.NewFormItem("Client", clientSel),
 		),
 		auto,
-		add,
+		container.NewHBox(cancel, add),
 	)
-	dlg = dialog.NewCustom("New project", "Cancel", fluidCard(form, cardDefault), m.window)
+	dlg = dialog.NewCustomWithoutButtons("New project", fluidCard(form, cardDefault), m.window)
 	dlg.Show()
 }
 

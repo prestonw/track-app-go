@@ -37,9 +37,24 @@ void trackapp_main_window_borderless(void) {
     win.styleMask = NSWindowStyleMaskBorderless | NSWindowStyleMaskResizable | NSWindowStyleMaskFullSizeContentView;
     win.titlebarAppearsTransparent = YES;
     win.titleVisibility = NSWindowTitleHidden;
+    if ([win respondsToSelector:@selector(setTitlebarSeparatorStyle:)]) {
+        win.titlebarSeparatorStyle = NSTitlebarSeparatorStyleNone;
+    }
     win.backgroundColor = [NSColor clearColor];
     win.opaque = NO;
     win.hasShadow = YES;
+    [win setMovableByWindowBackground:NO];
+}
+
+void trackapp_main_window_move_by(double dx, double dy) {
+    NSWindow *win = trackappFindMainWindow();
+    if (!win) {
+        return;
+    }
+    NSPoint origin = win.frame.origin;
+    origin.x += (CGFloat)dx;
+    origin.y -= (CGFloat)dy;
+    [win setFrameOrigin:origin];
 }
 
 void trackapp_main_window_hide_animated(void) {
